@@ -45,12 +45,12 @@ export type IgAccountInsight = {
   accounts_engaged?: number;
 };
 
-export async function getAccountInsights(days: number): Promise<{
+export async function getAccountInsights(days: number, offsetDays: number = 0): Promise<{
   daily: { date: string; reach: number; follower_count: number }[];
   totals: IgAccountInsight;
 }> {
-  const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString().slice(0, 10);
-  const until = new Date().toISOString().slice(0, 10);
+  const since = new Date(Date.now() - (days + offsetDays) * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const until = new Date(Date.now() - offsetDays * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
   const [timeSeries, totals] = await Promise.all([
     get<{ data: Array<{ name: string; values: Array<{ value: number; end_time: string }> }> }>(
