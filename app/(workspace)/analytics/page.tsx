@@ -1,12 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getAccountInfo, getAccountInsights, listMedia, getMediaInsights } from "@/lib/instagram/graph";
+import { getAccountInfo, getAccountInsights, listMedia, getMediaInsights, type IgMedia, type MediaInsights } from "@/lib/instagram/graph";
 import { AlertTriangle, TrendingUp, Eye, Users, MousePointerClick } from "lucide-react";
 
 export const revalidate = 600;
 
+type PieceWithInsights = { media: IgMedia; insights: MediaInsights };
+
 export default async function AnalyticsPage() {
-  let accountInfo, insights, media;
+  let accountInfo: Awaited<ReturnType<typeof getAccountInfo>> | undefined;
+  let insights: Awaited<ReturnType<typeof getAccountInsights>> | undefined;
+  let media: IgMedia[] | undefined;
   let error: string | null = null;
 
   try {
@@ -20,9 +24,9 @@ export default async function AnalyticsPage() {
   }
 
   // Insights por peça
-  const piecesInsights: Array<{ media: typeof media[0]; insights: Awaited<ReturnType<typeof getMediaInsights>> }> = [];
+  const piecesInsights: PieceWithInsights[] = [];
   if (media) {
-    const tasks = media.map(async (m) => ({
+    const tasks = media.map(async (m): Promise<PieceWithInsights> => ({
       media: m,
       insights: await getMediaInsights(m.id, m.media_product_type === "REELS"),
     }));
