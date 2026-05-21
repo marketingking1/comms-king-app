@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus, FileText, Lightbulb, Wand2 } from "lucide-react";
 
@@ -28,12 +28,10 @@ export default async function DashboardPage() {
             Squad de social media — King of Languages
           </p>
         </div>
-        <Button asChild>
-          <Link href="/briefs/new">
-            <Plus className="h-4 w-4" />
-            Novo brief
-          </Link>
-        </Button>
+        <Link href="/briefs/new" className={buttonVariants()}>
+          <Plus className="h-4 w-4" />
+          Novo brief
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

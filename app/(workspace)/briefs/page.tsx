@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
@@ -21,21 +21,19 @@ export default async function BriefsPage() {
             Briefs estratégicos mensais — comms-head
           </p>
         </div>
-        <Button asChild>
-          <Link href="/briefs/new">
-            <Plus className="h-4 w-4" />
-            Novo brief
-          </Link>
-        </Button>
+        <Link href="/briefs/new" className={buttonVariants()}>
+          <Plus className="h-4 w-4" />
+          Novo brief
+        </Link>
       </div>
 
       {!briefs?.length ? (
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground">
             <p>Nenhum brief criado ainda.</p>
-            <Button asChild className="mt-4">
-              <Link href="/briefs/new">Criar o primeiro</Link>
-            </Button>
+            <Link href="/briefs/new" className={`${buttonVariants()} mt-4 inline-flex`}>
+              Criar o primeiro
+            </Link>
           </CardContent>
         </Card>
       ) : (

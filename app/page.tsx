@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -26,9 +26,9 @@ export default async function Home() {
           </p>
         </div>
         <div className="flex justify-center gap-3 pt-4">
-          <Button asChild size="lg">
-            <Link href="/login">Entrar</Link>
-          </Button>
+          <Link href="/login" className={buttonVariants({ size: "lg" })}>
+            Entrar
+          </Link>
         </div>
       </div>
     </div>
