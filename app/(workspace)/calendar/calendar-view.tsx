@@ -198,7 +198,7 @@ export function CalendarView({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Roteiro</Label>
-              <Select value={newScript} onValueChange={setNewScript}>
+              <Select value={newScript} onValueChange={(v) => setNewScript(v ?? "")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Escolher roteiro..." />
                 </SelectTrigger>
@@ -227,7 +227,7 @@ export function CalendarView({
               </div>
               <div className="space-y-2">
                 <Label>Plataforma</Label>
-                <Select value={newPlatform} onValueChange={setNewPlatform}>
+                <Select value={newPlatform} onValueChange={(v) => setNewPlatform(v ?? "instagram")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
