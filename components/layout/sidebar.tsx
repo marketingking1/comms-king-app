@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Users,
   BarChart3,
+  LineChart,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -29,7 +30,8 @@ const NAV = [
   { href: "/scripts", label: "Roteiros", icon: Wand2 },
   { href: "/calendar", label: "Calendário", icon: CalendarDays },
   { href: "/community", label: "Comunidade", icon: Users },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/analytics", label: "Analytics IG", icon: BarChart3 },
+  { href: "/ga4", label: "Google Analytics", icon: LineChart },
 ];
 
 export function Sidebar() {
