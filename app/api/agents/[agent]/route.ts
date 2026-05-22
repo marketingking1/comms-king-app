@@ -90,9 +90,13 @@ export async function POST(
 
     // 2) Lê finishReason/warnings/usage ANTES de tentar `result.text`
     //    (que lança NoOutputGeneratedError quando empty).
-    const finishReason = await result.finishReason.catch(() => 'unknown' as const);
-    const warnings = await result.warnings.catch(() => undefined);
-    const usage = await result.usage.catch(() => undefined);
+    //    Cada read é PromiseLike (não Promise), então sem .catch — use try.
+    let finishReason: string = 'unknown';
+    let warnings: Awaited<typeof result.warnings>;
+    let usage: Awaited<typeof result.usage> | undefined;
+    try { finishReason = await result.finishReason; } catch { /* ignore */ }
+    try { warnings = await result.warnings; } catch { /* ignore */ }
+    try { usage = await result.usage; } catch { /* ignore */ }
 
     // 3) Tenta extrair text — pode lançar se nada foi gerado.
     let text = '';
