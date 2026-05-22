@@ -35,25 +35,25 @@ export default async function IdeasPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 stagger">
+        <div className="grid gap-2 stagger">
           {ideas.map((idea) => (
             <Link key={idea.id} href={`/ideas/${idea.id}`} className="group block">
               <Card className="hover:shadow-md hover:border-foreground/15 transition-all cursor-pointer">
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="h-11 w-11 rounded-xl bg-brand-coral/12 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-xl bg-brand-coral/12 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Lightbulb className="h-5 w-5 text-brand-coral" aria-hidden="true" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3 mb-1">
-                        <p className="font-display text-lg font-semibold leading-snug">
-                          {idea.title}
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <div className="flex items-start justify-between gap-3 mb-0.5">
+                        <p className="font-display text-base font-semibold leading-snug line-clamp-1">
+                          {cleanText(idea.title) || "Big Idea"}
                         </p>
                         <StatusBadge status={idea.status} />
                       </div>
                       {idea.thesis && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                          {idea.thesis}
+                        <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
+                          {cleanText(idea.thesis)}
                         </p>
                       )}
                     </div>
@@ -67,6 +67,11 @@ export default async function IdeasPage() {
       )}
     </div>
   );
+}
+
+function cleanText(s: string | null): string | null {
+  if (!s) return null;
+  return s.replace(/[*_`#>]+/g, "").replace(/\s+/g, " ").trim().slice(0, 200);
 }
 
 function StatusBadge({ status }: { status: string }) {

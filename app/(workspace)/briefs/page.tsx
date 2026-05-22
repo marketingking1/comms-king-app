@@ -49,24 +49,24 @@ export default async function BriefsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 stagger">
+        <div className="grid gap-2 stagger">
           {briefs.map((b) => (
             <Link key={b.id} href={`/briefs/${b.id}`} className="group block">
               <Card className="hover:shadow-md hover:border-foreground/15 transition-all cursor-pointer">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="h-11 w-11 rounded-xl bg-brand-blue/10 flex items-center justify-center flex-shrink-0">
-                    <FileText className="h-5 w-5 text-brand-blue" aria-hidden="true" />
+                <CardContent className="p-4 flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-xl bg-brand-blue/10 flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-4.5 w-4.5 text-brand-blue" aria-hidden="true" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-display text-lg font-semibold">{b.month}</p>
+                      <p className="font-display text-base font-semibold tabular-nums">{b.month}</p>
                       <StatusBadge status={b.status} />
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {b.obsession_metric || "Sem métrica de obsessão definida"}
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {cleanText(b.obsession_metric) || "Sem métrica de obsessão definida"}
                     </p>
                   </div>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" aria-hidden="true" />
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all flex-shrink-0" aria-hidden="true" />
                 </CardContent>
               </Card>
             </Link>
@@ -75,6 +75,12 @@ export default async function BriefsPage() {
       )}
     </div>
   );
+}
+
+/** Remove markers de markdown pra preview compacto. */
+function cleanText(s: string | null): string | null {
+  if (!s) return null;
+  return s.replace(/[*_`#>]+/g, "").replace(/\s+/g, " ").trim().slice(0, 140);
 }
 
 function StatusBadge({ status }: { status: string }) {

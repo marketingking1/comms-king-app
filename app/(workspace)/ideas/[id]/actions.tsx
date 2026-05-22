@@ -109,13 +109,25 @@ export function IdeaActions({
         throw new Error(`Provider erro: ${streamErrMatch[1].slice(0, 400)}`);
       }
 
-      // Salva concept
-      const modelMatch = acc.match(/Framework:\s*\*?\*?\s*([A-Za-z\-\s]+)/);
+      // Extrai framework narrativo (Hero Brand, Pixar, Campbell, etc)
+      const modelMatch = acc.match(/Framework[:\s]+\*{0,2}\s*([^*\n|]{2,80})/i);
+      const narrativeModel = modelMatch ? modelMatch[1].trim().replace(/[*]+/g, "").slice(0, 100) : "auto";
+
+      // Extrai hook verbal (linha "Hook: ..." ou "Hook verbal: ...")
+      const hookMatch = acc.match(/Hook(?:\s+verbal)?[:\s]+\*{0,2}\s*([^\n*]{5,200})/i);
+      const hookVerbal = hookMatch ? hookMatch[1].trim().replace(/[*]+/g, "").slice(0, 250) : null;
+
+      // Detecta STEPPS dominante
+      const steppsMatch = acc.match(/STEPPS\s+dominante[:\s]+\*{0,2}\s*([^\n*]{2,80})/i);
+      const steppsDominant = steppsMatch ? steppsMatch[1].trim().replace(/[*]+/g, "").slice(0, 80) : null;
+
       const { data: concept, error: insertErr } = await supabase
         .from("concepts")
         .insert({
           big_idea_id: ideaId,
-          narrative_model: modelMatch ? modelMatch[1].trim().slice(0, 100) : "auto",
+          narrative_model: narrativeModel,
+          hook_verbal: hookVerbal,
+          stepps_dominant: steppsDominant,
           status: "draft",
           raw_markdown: acc,
         })
