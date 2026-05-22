@@ -81,38 +81,50 @@ export async function POST(
       relatedEntityId: body.relatedEntityId,
     });
 
-    // Consome o stream silenciosamente primeiro (sem throw em onError).
-    // Depois lê finishReason/warnings pra diagnóstico se text vier vazio.
+    // 1) Consume stream silenciosamente (não lança em erro do provider).
     await result.consumeStream({
       onError: (error) => {
         console.error('[api/agents] consumeStream onError', { agent, error });
       },
     });
 
-    const text = await result.text;
-    const finishReason = await result.finishReason;
-    const warnings = await result.warnings;
-    const usage = await result.usage;
+    // 2) Lê finishReason/warnings/usage ANTES de tentar `result.text`
+    //    (que lança NoOutputGeneratedError quando empty).
+    const finishReason = await result.finishReason.catch(() => 'unknown' as const);
+    const warnings = await result.warnings.catch(() => undefined);
+    const usage = await result.usage.catch(() => undefined);
+
+    // 3) Tenta extrair text — pode lançar se nada foi gerado.
+    let text = '';
+    let textError: string | null = null;
+    try {
+      text = await result.text;
+    } catch (te) {
+      textError = te instanceof Error ? te.message : String(te);
+    }
 
     if (!text || text.trim().length === 0) {
-      console.error('[api/agents] empty output', {
-        agent,
-        finishReason,
-        warnings,
-        usage,
-      });
       const warnDetail = warnings && warnings.length > 0
         ? warnings.map((w) => {
             if (w.type === 'other') return w.message;
             return `${w.type}:${w.feature}${w.details ? `(${w.details})` : ''}`;
           }).join('; ')
         : '';
+      console.error('[api/agents] empty output', {
+        agent,
+        finishReason,
+        warnings,
+        usage,
+        textError,
+      });
+      const parts = [
+        `finishReason=${finishReason}`,
+        warnDetail ? `warnings=${warnDetail}` : '',
+        textError ? `textErr=${textError.slice(0, 200)}` : '',
+        usage ? `tokens=${usage.inputTokens ?? '?'}→${usage.outputTokens ?? '?'}` : '',
+      ].filter(Boolean).join('; ');
       return Response.json(
-        {
-          error: `agent error: empty output (finishReason=${finishReason}${
-            warnDetail ? `; warnings=${warnDetail}` : ''
-          })`,
-        },
+        { error: `agent error: empty output (${parts})` },
         { status: 502 },
       );
     }
