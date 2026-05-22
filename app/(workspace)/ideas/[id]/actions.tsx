@@ -59,17 +59,31 @@ export function IdeaActions({ ideaId }: { ideaId: string }) {
         .eq("id", ideaId)
         .single();
 
+      if (!idea?.raw_markdown || idea.raw_markdown.trim().length < 50) {
+        throw new Error("Big Idea sem raw_markdown (corpo vazio). Reabra a idea e veja se o conteúdo foi salvo.");
+      }
+
       const res = await fetch("/api/agents/comms-storyteller-viral", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: `Big Idea aprovada pra gerar conceito narrativo:\n\n${idea?.raw_markdown}\n\nAplique o processo de 6 etapas e gere o conceito narrativo completo em markdown. Use Hero Brand + 3 Regras + STEPPS.`,
+          message: `Big Idea aprovada pra gerar conceito narrativo:\n\n${idea.raw_markdown}\n\nAplique o processo de 6 etapas e gere o conceito narrativo completo em markdown. Use Hero Brand + 3 Regras + STEPPS.`,
           relatedEntityType: "big_idea",
           relatedEntityId: ideaId,
         }),
       });
 
-      if (!res.ok) throw new Error("Erro ao gerar conceito");
+      if (!res.ok) {
+        const body = await res.text();
+        let detail = body;
+        try {
+          const json = JSON.parse(body);
+          detail = json.error || json.message || body;
+        } catch {
+          // body é texto puro
+        }
+        throw new Error(`HTTP ${res.status}: ${detail.slice(0, 400)}`);
+      }
 
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
@@ -80,9 +94,13 @@ export function IdeaActions({ ideaId }: { ideaId: string }) {
         acc += decoder.decode(value, { stream: true });
       }
 
+      if (!acc.trim()) {
+        throw new Error("Agente respondeu vazio (provavelmente erro mid-stream do provider). Veja os logs da Vercel.");
+      }
+
       // Salva concept
       const modelMatch = acc.match(/Framework:\s*\*?\*?\s*([A-Za-z\-\s]+)/);
-      const { data: concept } = await supabase
+      const { data: concept, error: insertErr } = await supabase
         .from("concepts")
         .insert({
           big_idea_id: ideaId,
@@ -92,6 +110,8 @@ export function IdeaActions({ ideaId }: { ideaId: string }) {
         })
         .select()
         .single();
+
+      if (insertErr) throw new Error(`Insert concept falhou: ${insertErr.message}`);
 
       toast.success("Conceito gerado");
       if (concept) {

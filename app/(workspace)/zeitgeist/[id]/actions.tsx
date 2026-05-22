@@ -142,7 +142,17 @@ export function ZeitgeistActions({
 }
 
 async function streamText(res: Response): Promise<string> {
-  if (!res.ok) throw new Error("Agent error");
+  if (!res.ok) {
+    const body = await res.text();
+    let detail = body;
+    try {
+      const json = JSON.parse(body);
+      detail = json.error || json.message || body;
+    } catch {
+      // body é texto puro
+    }
+    throw new Error(`HTTP ${res.status}: ${detail.slice(0, 400)}`);
+  }
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
   let acc = "";
@@ -151,5 +161,6 @@ async function streamText(res: Response): Promise<string> {
     if (done) break;
     acc += decoder.decode(value, { stream: true });
   }
+  if (!acc.trim()) throw new Error("Agente respondeu vazio (erro mid-stream provável)");
   return acc;
 }

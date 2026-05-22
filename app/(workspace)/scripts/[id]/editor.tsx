@@ -73,7 +73,12 @@ export function ScriptEditor({
           relatedEntityId: scriptId,
         }),
       });
-      if (!res.ok) throw new Error("Erro");
+      if (!res.ok) {
+        const body = await res.text();
+        let detail = body;
+        try { detail = JSON.parse(body).error || body; } catch { /* texto puro */ }
+        throw new Error(`HTTP ${res.status}: ${detail.slice(0, 400)}`);
+      }
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let acc = "";
@@ -82,6 +87,7 @@ export function ScriptEditor({
         if (done) break;
         acc += decoder.decode(value, { stream: true });
       }
+      if (!acc.trim()) throw new Error("Agente respondeu vazio (erro mid-stream provável)");
       await supabase.from("edit_briefs").insert({
         script_id: scriptId,
         raw_markdown: acc,
