@@ -9,12 +9,19 @@ import { toast } from "sonner";
 import { Check, X, Sparkles } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-export function IdeaActions({ ideaId }: { ideaId: string }) {
+export function IdeaActions({
+  ideaId,
+  status,
+}: {
+  ideaId: string;
+  status: string;
+}) {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
   const [generating, setGenerating] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject] = useState(false);
+  const isApproved = status === "approved";
 
   async function approve() {
     const { error } = await supabase
@@ -129,18 +136,26 @@ export function IdeaActions({ ideaId }: { ideaId: string }) {
   return (
     <Card>
       <CardContent className="pt-6 flex flex-wrap gap-2">
-        <Button onClick={generateConcept} disabled={generating}>
-          <Sparkles className="h-4 w-4" />
-          {generating ? "Gerando conceito..." : "Aprovar + gerar conceito"}
+        <Button onClick={generateConcept} disabled={generating} className="cursor-pointer">
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
+          {generating
+            ? "Gerando conceito..."
+            : isApproved
+              ? "Gerar conceito"
+              : "Aprovar + gerar conceito"}
         </Button>
-        <Button variant="outline" onClick={approve} disabled={generating}>
-          <Check className="h-4 w-4" />
-          Apenas aprovar
-        </Button>
-        <Button variant="outline" onClick={() => setShowReject(true)} disabled={generating}>
-          <X className="h-4 w-4" />
-          Rejeitar
-        </Button>
+        {!isApproved && (
+          <>
+            <Button variant="outline" onClick={approve} disabled={generating} className="cursor-pointer">
+              <Check className="h-4 w-4" aria-hidden="true" />
+              Apenas aprovar
+            </Button>
+            <Button variant="outline" onClick={() => setShowReject(true)} disabled={generating} className="cursor-pointer">
+              <X className="h-4 w-4" aria-hidden="true" />
+              Rejeitar
+            </Button>
+          </>
+        )}
         {showReject && (
           <div className="w-full mt-3 space-y-2">
             <Textarea
@@ -149,7 +164,7 @@ export function IdeaActions({ ideaId }: { ideaId: string }) {
               onChange={(e) => setRejectReason(e.target.value)}
               rows={2}
             />
-            <Button size="sm" variant="destructive" onClick={reject}>
+            <Button size="sm" variant="destructive" onClick={reject} className="cursor-pointer">
               Confirmar rejeição
             </Button>
           </div>

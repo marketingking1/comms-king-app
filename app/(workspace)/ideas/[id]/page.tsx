@@ -48,7 +48,9 @@ export default async function IdeaDetailPage({
         </Badge>
       </div>
 
-      {idea.status === "proposed" && <IdeaActions ideaId={idea.id} />}
+      {idea.status !== "rejected" && (
+        <IdeaActions ideaId={idea.id} status={idea.status} />
+      )}
 
       {idea.thesis && (
         <Card>
