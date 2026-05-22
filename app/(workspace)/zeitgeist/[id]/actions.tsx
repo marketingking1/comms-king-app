@@ -162,7 +162,7 @@ async function streamText(res: Response): Promise<string> {
     acc += decoder.decode(value, { stream: true });
   }
   if (!acc.trim()) throw new Error("Agente respondeu vazio (erro mid-stream provável)");
-  const m = acc.match(/\[STREAM (?:ERROR|EXCEPTION)\]\s*(.+)$/s);
+  const m = acc.match(/\[STREAM (?:ERROR|EXCEPTION)\]\s*([\s\S]+)$/);
   if (m) throw new Error(`Provider erro: ${m[1].slice(0, 400)}`);
   return acc;
 }

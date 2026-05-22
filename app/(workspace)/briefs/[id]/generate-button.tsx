@@ -61,7 +61,7 @@ export function GenerateBigIdeasButton({
         setOutput(acc);
       }
 
-      const streamErr = acc.match(/\[STREAM (?:ERROR|EXCEPTION)\]\s*(.+)$/s);
+      const streamErr = acc.match(/\[STREAM (?:ERROR|EXCEPTION)\]\s*([\s\S]+)$/);
       if (streamErr) {
         throw new Error(`Provider erro: ${streamErr[1].slice(0, 400)}`);
       }

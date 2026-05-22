@@ -81,7 +81,7 @@ export function AgentChat({
         acc += decoder.decode(value, { stream: true });
         setPendingAssistant(acc);
       }
-      const streamErr = acc.match(/\[STREAM (?:ERROR|EXCEPTION)\]\s*(.+)$/s);
+      const streamErr = acc.match(/\[STREAM (?:ERROR|EXCEPTION)\]\s*([\s\S]+)$/);
       if (streamErr) {
         toast.error(`Provider erro: ${streamErr[1].slice(0, 200)}`);
         setMessages(history);

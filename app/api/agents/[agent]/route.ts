@@ -81,29 +81,10 @@ export async function POST(
       relatedEntityId: body.relatedEntityId,
     });
 
-    // result.text é PromiseLike<string>. LANÇA se houver erro de provider
-    // (rate limit, context overflow, model not found, etc).
-    // Sem streaming, mas com erro reportado de verdade.
-    const text = await result.text;
-
-    return new Response(text, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Agent': agent,
-      },
-    });
-  } catch (e: unknown) {
+    return result.toTextStreamResponse();
+  } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    // Pega cause/statusCode/responseBody se existirem (Anthropic SDK error shape)
-    const extra: Record<string, unknown> = {};
-    if (e && typeof e === 'object') {
-      const obj = e as Record<string, unknown>;
-      if (obj.statusCode) extra.statusCode = obj.statusCode;
-      if (obj.cause) extra.cause = String(obj.cause).slice(0, 300);
-      if (obj.responseBody) extra.responseBody = String(obj.responseBody).slice(0, 300);
-    }
-    console.error('[api/agents]', { agent, message: msg, ...extra });
-    const detail = [msg, extra.cause, extra.responseBody].filter(Boolean).join(' :: ');
-    return Response.json({ error: `agent error: ${detail.slice(0, 600)}` }, { status: 500 });
+    console.error('[api/agents]', { agent, error: msg, stack: e instanceof Error ? e.stack : undefined });
+    return Response.json({ error: `agent error: ${msg.slice(0, 300)}` }, { status: 500 });
   }
 }
