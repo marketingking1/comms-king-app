@@ -7,15 +7,31 @@ import {
   getTwitterTrending,
   type RawTrend,
 } from "@/lib/trends/sources";
-import { classifyTrendsRelevance } from "@/lib/trends/classify";
-import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { classifyTrendsRelevance, type TrendClassification } from "@/lib/trends/classify";
+import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/utils/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
+const ALLOWED_SOURCES = new Set(["google_trends", "twitter", "tiktok", "reddit", "news"]);
+
 export async function POST(request: NextRequest) {
+  // Auth
+  const auth = await createSupabaseServerClient();
+  const { data: { user } } = await auth.auth.getUser();
+  if (!user) return Response.json({ error: "unauthenticated" }, { status: 401 });
+
+  // Rate limit: 1 refresh / 2min / user
+  if (!checkRateLimit(`trends-refresh:${user.id}`, 1, 120)) {
+    return Response.json({ error: "rate limited" }, { status: 429 });
+  }
+
   const body = await request.json().catch(() => ({}));
-  const sources: string[] = body.sources || ["google_trends", "twitter", "tiktok", "reddit", "news"];
+  const rawSources: unknown = body.sources;
+  const sources: string[] = Array.isArray(rawSources)
+    ? rawSources.filter((s): s is string => typeof s === "string" && ALLOWED_SOURCES.has(s))
+    : ["google_trends", "twitter", "tiktok", "reddit", "news"];
 
   const supabase = createSupabaseAdminClient();
   const startedAt = Date.now();
@@ -24,27 +40,25 @@ export async function POST(request: NextRequest) {
   const fetchTasks: Array<Promise<RawTrend[]>> = [];
   if (sources.includes("google_trends")) fetchTasks.push(getGoogleTrendsDaily());
   if (sources.includes("news")) fetchTasks.push(getNewsTrending());
-  // Apify sources (mais lentos)
   if (sources.includes("twitter")) fetchTasks.push(getTwitterTrending());
   if (sources.includes("tiktok")) fetchTasks.push(getTikTokTrending());
   if (sources.includes("reddit")) fetchTasks.push(getRedditTrending());
 
   const results = await Promise.allSettled(fetchTasks);
 
-  // Combinar
   const allTrends: RawTrend[] = [];
   for (const r of results) {
     if (r.status === "fulfilled") allTrends.push(...r.value);
+    else console.error("[trends/refresh] source failed:", r.reason);
   }
 
-  // Contar por source
   for (const t of allTrends) {
     if (!summary[t.source]) summary[t.source] = { count: 0 };
     summary[t.source].count++;
   }
 
-  // Classificar relevância via Sonnet (em batches de 20 pra performance)
-  const classifications: ReturnType<typeof classifyTrendsRelevance> extends Promise<infer U> ? U : never = [];
+  // Classificar relevância via Sonnet em batches de 20 — array global alinhado por posição
+  const classifications: TrendClassification[] = [];
   const batchSize = 20;
   for (let i = 0; i < allTrends.length; i += batchSize) {
     const batch = allTrends.slice(i, i + batchSize);
@@ -52,14 +66,11 @@ export async function POST(request: NextRequest) {
     classifications.push(...batchResult);
   }
 
-  // Inserir no Supabase (substituir os do dia)
+  // Re-fetch — apaga do dia + insere novos
   const today = new Date().toISOString().slice(0, 10);
-
-  // Apaga trends do dia (re-fetch)
   const dayStart = new Date(today + "T00:00:00Z").toISOString();
   await supabase.from("trends").delete().gte("fetched_at", dayStart);
 
-  // Inserir
   const rowsToInsert = allTrends.map((t, i) => ({
     source: t.source,
     topic: t.topic.slice(0, 500),
@@ -78,7 +89,8 @@ export async function POST(request: NextRequest) {
   if (rowsToInsert.length > 0) {
     const { error } = await supabase.from("trends").insert(rowsToInsert);
     if (error) {
-      return Response.json({ error: error.message, summary }, { status: 500 });
+      console.error("[trends/refresh] insert error:", error);
+      return Response.json({ error: "insert failed", summary }, { status: 500 });
     }
   }
 

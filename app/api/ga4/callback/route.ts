@@ -31,8 +31,7 @@ export async function GET(request: NextRequest) {
     await saveTokens(tokens.access_token, tokens.refresh_token, tokens.expires_in, user?.id);
     return NextResponse.redirect(new URL("/ga4?connected=1", request.url));
   } catch (e) {
-    return NextResponse.redirect(
-      new URL(`/ga4?error=${encodeURIComponent(e instanceof Error ? e.message : "unknown")}`, request.url),
-    );
+    console.error("[api/ga4/callback]", e);
+    return NextResponse.redirect(new URL("/ga4?error=oauth_failed", request.url));
   }
 }

@@ -1,20 +1,40 @@
 import { NextRequest } from "next/server";
 import { runAgentStreaming } from "@/lib/agents/runner";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/utils/rate-limit";
+import { wrapUntrusted } from "@/lib/utils/sanitize-prompt";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
+const BodySchema = z.object({
+  analyticsContext: z.string().min(1).max(50000),
+});
+
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  if (!body.analyticsContext) {
-    return Response.json({ error: "analyticsContext required" }, { status: 400 });
+  // Auth
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: "unauthenticated" }, { status: 401 });
+
+  // Rate limit: 1 / 5min / user (Sonnet ~$0.05/run)
+  if (!checkRateLimit(`hypotheses:${user.id}`, 1, 300)) {
+    return Response.json({ error: "rate limited" }, { status: 429 });
+  }
+
+  let body: z.infer<typeof BodySchema>;
+  try {
+    body = BodySchema.parse(await request.json());
+  } catch {
+    return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
   const prompt = `Você está rodando análise pós-publicação semanal sobre dados reais da conta @kingoflanguagesoficial.
 
 DADOS COLETADOS (últimos 30 dias):
 
-${body.analyticsContext}
+${wrapUntrusted("ANALYTICS_DATA", body.analyticsContext, 40000)}
 
 Sua missão: GERAR 5-10 HIPÓTESES ACIONÁVEIS sobre o que está funcionando e o que não está, com base nestes dados.
 
@@ -42,13 +62,12 @@ Use seu sequential thinking. Comece com diagnóstico narrativo de 1 parágrafo, 
     const result = await runAgentStreaming({
       agent: "comms-analyst-io",
       userMessage: prompt,
+      triggeredByUserId: user.id,
       relatedEntityType: "analytics_snapshot",
     });
     return result.toTextStreamResponse();
   } catch (e) {
-    return Response.json(
-      { error: e instanceof Error ? e.message : String(e) },
-      { status: 500 },
-    );
+    console.error("[api/analytics/hypotheses]", e);
+    return Response.json({ error: "internal" }, { status: 500 });
   }
 }

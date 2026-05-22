@@ -31,18 +31,31 @@ async function runApifyActor(actorId: string, input: object, timeoutMs = 180000)
   const runId = startData.data.id;
   const datasetId = startData.data.defaultDatasetId;
 
-  // Poll status
+  // Poll status com deadline real
   const deadline = Date.now() + timeoutMs;
+  let succeeded = false;
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 5000));
-    const statusRes = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`);
-    const statusData = (await statusRes.json()) as { data: { status: string } };
-    if (["SUCCEEDED", "FAILED", "TIMED-OUT", "ABORTED"].includes(statusData.data.status)) {
-      if (statusData.data.status !== "SUCCEEDED") {
-        throw new Error(`Apify run ${statusData.data.status}`);
+    let status: string | undefined;
+    try {
+      const statusRes = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`);
+      if (!statusRes.ok) continue;
+      const statusData = await statusRes.json() as { data?: { status?: string } };
+      status = statusData?.data?.status;
+    } catch {
+      continue;
+    }
+    if (!status) continue;
+    if (["SUCCEEDED", "FAILED", "TIMED-OUT", "ABORTED"].includes(status)) {
+      if (status !== "SUCCEEDED") {
+        throw new Error(`Apify run ${actorPath}: ${status}`);
       }
+      succeeded = true;
       break;
     }
+  }
+  if (!succeeded) {
+    throw new Error(`Apify ${actorPath} timeout after ${Math.round(timeoutMs / 1000)}s`);
   }
 
   // Pegar dataset
@@ -80,7 +93,7 @@ function parseGoogleTrendsRSS(xml: string): RawTrend[] {
     const block = m[1];
     const title = extractTag(block, "title");
     const trafficStr = extractTag(block, "ht:approx_traffic");
-    const traffic = trafficStr ? parseInt(trafficStr.replace(/[^\d]/g, "")) : 0;
+    const traffic = trafficStr ? parseInt(trafficStr.replace(/[^\d]/g, ""), 10) || 0 : 0;
     const news = extractTag(block, "ht:news_item_title");
     const url = extractTag(block, "ht:news_item_url");
     const pic = extractTag(block, "ht:picture");

@@ -22,6 +22,7 @@ import {
 import { DateFilter } from "./date-filter";
 import { getAccountInsights, listMedia, getMediaInsights } from "@/lib/instagram/graph";
 import { buildDailyPostsSeries } from "@/lib/instagram/analytics-advanced";
+import { pLimit } from "@/lib/utils/p-limit";
 import { AlertTriangle, TrendingUp, TrendingDown, DollarSign, Users, Target, Clock, Instagram } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -137,6 +138,7 @@ export default async function SalesPage({
 
   // Correlação clicks IG (por peça do dia) × leads IG no dia
   // Aproximação: usar daily posts series como proxy de "presença IG"
+  const igLimit = pLimit(5);
   const dailyPosts = buildDailyPostsSeries(
     (await Promise.all(
       igMedia
@@ -144,10 +146,12 @@ export default async function SalesPage({
           const ts = new Date(m.timestamp).getTime();
           return ts >= fromDate.getTime() && ts <= toDate.getTime();
         })
-        .map(async (m) => ({
-          media: m,
-          insights: await getMediaInsights(m.id, m.media_product_type === "REELS").catch(() => ({})),
-        })),
+        .map((m) =>
+          igLimit(async () => ({
+            media: m,
+            insights: await getMediaInsights(m.id, m.media_product_type === "REELS").catch(() => ({})),
+          })),
+        ),
     )),
     rangeDays,
   );

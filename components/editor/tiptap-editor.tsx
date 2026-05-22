@@ -30,7 +30,16 @@ export function TiptapEditor({ initialContent, initialMarkdown, onChange, placeh
       TableHeader,
       TableCell,
     ],
-    content: initialContent ? JSON.parse(initialContent) : markdownToHtml(initialMarkdown ?? ""),
+    content: (() => {
+      if (initialContent) {
+        try {
+          return JSON.parse(initialContent);
+        } catch {
+          // fallback se DB ficou inválida
+        }
+      }
+      return markdownToHtml(initialMarkdown ?? "");
+    })(),
     onUpdate: ({ editor }) => {
       onChange?.(editor.getJSON(), editor.getText());
     },

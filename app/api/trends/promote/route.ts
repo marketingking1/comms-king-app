@@ -4,26 +4,42 @@
 
 import { NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/utils/rate-limit";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const trendId = body.trendId;
-  if (!trendId) return Response.json({ error: "trendId required" }, { status: 400 });
+const BodySchema = z.object({
+  trendId: z.string().uuid(),
+});
 
+export async function POST(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: "unauthenticated" }, { status: 401 });
+
+  if (!checkRateLimit(`trends-promote:${user.id}`, 20, 60)) {
+    return Response.json({ error: "rate limited" }, { status: 429 });
+  }
+
+  let body: z.infer<typeof BodySchema>;
+  try {
+    body = BodySchema.parse(await request.json());
+  } catch {
+    return Response.json({ error: "invalid body" }, { status: 400 });
+  }
+
   const { data: trend, error } = await supabase
     .from("trends")
     .select("*")
-    .eq("id", trendId)
+    .eq("id", body.trendId)
     .single();
   if (error || !trend) return Response.json({ error: "trend not found" }, { status: 404 });
 
   const { data: piece, error: insErr } = await supabase
     .from("zeitgeist_pieces")
     .insert({
-      topic: trend.topic.slice(0, 500),
+      topic: String(trend.topic).slice(0, 500),
       source: trend.url || trend.source,
       window_type: "le48h",
       expires_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
@@ -34,7 +50,10 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (insErr) return Response.json({ error: insErr.message }, { status: 500 });
+  if (insErr) {
+    console.error("[api/trends/promote]", insErr);
+    return Response.json({ error: "insert failed" }, { status: 500 });
+  }
 
   return Response.json({ ok: true, zeitgeistId: piece.id });
 }

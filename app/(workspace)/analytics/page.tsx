@@ -40,6 +40,7 @@ import { BrandSearchBridge } from "./brand-search-bridge";
 import { BigIdeasLab } from "./big-ideas-lab";
 import { getBrandTrafficDaily } from "@/lib/ga4/brand-search";
 import { getPropertyId } from "@/lib/ga4/client";
+import { pLimit } from "@/lib/utils/p-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -60,12 +61,15 @@ export default async function AnalyticsPage() {
     error = e instanceof Error ? e.message : String(e);
   }
 
-  // Insights por peça
+  // Insights por peça — concurrency limit ≤5 pra não bater IG rate limit (200/h)
+  const limit = pLimit(5);
   const allPieces: PieceWithInsights[] = await Promise.all(
-    (mediaList || []).map(async (m) => ({
-      media: m,
-      insights: await getMediaInsights(m.id, m.media_product_type === "REELS"),
-    })),
+    (mediaList || []).map((m) =>
+      limit(async () => ({
+        media: m,
+        insights: await getMediaInsights(m.id, m.media_product_type === "REELS").catch(() => ({})),
+      })),
+    ),
   );
 
   // Divide em current/previous baseado em data

@@ -160,13 +160,13 @@ export type HashtagStat = {
   totalReach: number;
 };
 
-const HASHTAG_REGEX = /#(\w+)/g;
-
 function extractHashtags(caption: string | undefined): string[] {
   if (!caption) return [];
+  // Regex local pra não compartilhar lastIndex entre chamadas
+  const regex = /#(\w+)/g;
   const tags: string[] = [];
   let m;
-  while ((m = HASHTAG_REGEX.exec(caption)) !== null) {
+  while ((m = regex.exec(caption)) !== null) {
     tags.push(m[1].toLowerCase());
   }
   return tags;

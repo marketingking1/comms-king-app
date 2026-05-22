@@ -1,35 +1,65 @@
 import { NextRequest } from "next/server";
 import { runAgentStreaming } from "@/lib/agents/runner";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/utils/rate-limit";
+import { wrapUntrusted } from "@/lib/utils/sanitize-prompt";
+import { z } from "zod";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
+const BodySchema = z.object({
+  score: z.number().min(0).max(100).optional(),
+  delta: z.number().optional(),
+  topHooks: z.string().max(10000).optional(),
+  topClusters: z.string().max(10000).optional(),
+  saturatedClusters: z.string().max(10000).optional(),
+  goldmine: z.string().max(10000).optional(),
+  brandSearchLift: z.string().max(5000).optional(),
+  anomalies: z.string().max(10000).optional(),
+});
+
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  // Auth
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: "unauthenticated" }, { status: 401 });
+
+  // Rate limit Opus pesado: 1 / 10min / user
+  if (!checkRateLimit(`big-ideas-lab:${user.id}`, 1, 600)) {
+    return Response.json({ error: "rate limited" }, { status: 429 });
+  }
+
+  let body: z.infer<typeof BodySchema>;
+  try {
+    body = BodySchema.parse(await request.json());
+  } catch {
+    return Response.json({ error: "invalid body" }, { status: 400 });
+  }
 
   const prompt = `Você é o comms-million-strategist. Gerar **3 Big Ideas $1M** cruzando os dados abaixo (todos da última semana do orgânico KoL).
 
 ============ EVIDÊNCIAS COLETADAS ============
 
-SCORE SEMANAL: ${body.score}/100 (delta ${body.delta}%)
+SCORE SEMANAL: ${Number(body.score ?? 0)}/100 (delta ${Number(body.delta ?? 0)}%)
 
 TOP HOOKS (peças que mais converteram):
-${body.topHooks || "—"}
+${wrapUntrusted("HOOKS", body.topHooks || "—", 5000)}
 
 CLUSTERS TEMÁTICOS DE MELHOR PERFORMANCE:
-${body.topClusters || "—"}
+${wrapUntrusted("TOP_CLUSTERS", body.topClusters || "—", 5000)}
 
 CLUSTERS SATURADOS (baixa performance, alto volume):
-${body.saturatedClusters || "—"}
+${wrapUntrusted("SATURATED_CLUSTERS", body.saturatedClusters || "—", 5000)}
 
 QUADRANTE GOLDMINE (alto reach + alto save):
-${body.goldmine || "—"}
+${wrapUntrusted("GOLDMINE", body.goldmine || "—", 5000)}
 
 CORRELAÇÃO ORG → BUSCA POR MARCA (Pearson lag 1-3 dias):
-${body.brandSearchLift || "—"}
+${wrapUntrusted("BRAND_SEARCH", body.brandSearchLift || "—", 2000)}
 
 ANOMALIAS DA SEMANA:
-${body.anomalies || "—"}
+${wrapUntrusted("ANOMALIES", body.anomalies || "—", 5000)}
 
 ============ MISSÃO ============
 
@@ -60,13 +90,12 @@ NÃO genérico. NÃO "fazer mais Reels". Cada Big Idea precisa ser UMA TESE espe
     const result = await runAgentStreaming({
       agent: "comms-million-strategist",
       userMessage: prompt,
+      triggeredByUserId: user.id,
       relatedEntityType: "analytics_snapshot",
     });
     return result.toTextStreamResponse();
   } catch (e) {
-    return Response.json(
-      { error: e instanceof Error ? e.message : String(e) },
-      { status: 500 },
-    );
+    console.error("[api/analytics/big-ideas-lab]", e);
+    return Response.json({ error: "internal" }, { status: 500 });
   }
 }

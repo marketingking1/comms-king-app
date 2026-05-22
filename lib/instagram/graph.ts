@@ -56,14 +56,19 @@ export async function getAccountInsights(days: number, offsetDays: number = 0): 
   const includeFollowers = offsetDays === 0;
   const timeSeriesMetric = includeFollowers ? "reach,follower_count" : "reach";
 
-  const [timeSeries, totals] = await Promise.all([
-    get<{ data: Array<{ name: string; values: Array<{ value: number; end_time: string }> }> }>(
-      `${IG_ID}/insights?metric=${timeSeriesMetric}&period=day&since=${since}&until=${until}`,
-    ).catch(() => ({ data: [] })),
-    get<{ data: Array<{ name: string; total_value: { value: number } }> }>(
-      `${IG_ID}/insights?metric=profile_views,website_clicks,accounts_engaged&metric_type=total_value&period=day&since=${since}&until=${until}`,
-    ).catch(() => ({ data: [] })),
-  ]);
+  // Time series: pode falhar legitimamente quando follower_count > 30d (catch só esse)
+  const timeSeries = await get<{ data: Array<{ name: string; values: Array<{ value: number; end_time: string }> }> }>(
+    `${IG_ID}/insights?metric=${timeSeriesMetric}&period=day&since=${since}&until=${until}`,
+  ).catch((e) => {
+    if (!includeFollowers) return { data: [] }; // erro esperado pra histórico
+    console.error("[ig/getAccountInsights] time series:", e);
+    throw e; // erro real — propagar
+  });
+
+  // Totals: erro = sinal de token expirado ou rate limit, NÃO silenciar
+  const totals = await get<{ data: Array<{ name: string; total_value: { value: number } }> }>(
+    `${IG_ID}/insights?metric=profile_views,website_clicks,accounts_engaged&metric_type=total_value&period=day&since=${since}&until=${until}`,
+  );
 
   const reachSeries = timeSeries.data.find((x) => x.name === "reach")?.values || [];
   const followerSeries = timeSeries.data.find((x) => x.name === "follower_count")?.values || [];

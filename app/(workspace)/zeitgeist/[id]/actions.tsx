@@ -106,8 +106,7 @@ export function ZeitgeistActions({
   }
 
   async function reject() {
-    const reason = prompt("Por que rejeitar? (anti-padrão, pisa em compliance, óbvio demais...)");
-    if (!reason) return;
+    if (!confirm("Rejeitar essa pauta?")) return;
     const { error } = await supabase
       .from("zeitgeist_pieces")
       .update({ status: "rejected" })

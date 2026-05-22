@@ -8,10 +8,18 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 const CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID!;
 const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET!;
 
+const ALLOWED_HOSTS = new Set([
+  "comms-king-app.vercel.app",
+  "localhost:3000",
+  "comms.kingoflanguages.com.br",
+]);
+
 export function getRedirectUri(req: Request): string {
   const proto = req.headers.get("x-forwarded-proto") || "https";
   const host = req.headers.get("host") || "comms-king-app.vercel.app";
-  return `${proto}://${host}/api/ga4/callback`;
+  // Validar host contra allowlist — previne host header injection
+  const safeHost = ALLOWED_HOSTS.has(host) ? host : "comms-king-app.vercel.app";
+  return `${proto}://${safeHost}/api/ga4/callback`;
 }
 
 export function buildAuthUrl(redirectUri: string, state: string): string {
@@ -85,7 +93,9 @@ export async function getAccessToken(): Promise<string | null> {
   const stored = data.value as { access_token?: string; refresh_token: string };
   const expires = data.expires_at ? new Date(data.expires_at).getTime() : 0;
 
-  // Se access token expira em < 60s, renova
+  // Se access token expira em < 60s, renova.
+  // Race: 2 chamadas simultâneas refresh — Google retorna o MESMO access se chamada com mesmo refresh.
+  // Preservar refresh_token original se Google não emitir novo.
   if (expires - Date.now() < 60000 && stored.refresh_token) {
     const newTokens = await refreshAccessToken(stored.refresh_token);
     const newExpires = new Date(Date.now() + newTokens.expires_in * 1000).toISOString();
@@ -94,7 +104,7 @@ export async function getAccessToken(): Promise<string | null> {
       .update({
         value: {
           access_token: newTokens.access_token,
-          refresh_token: stored.refresh_token,
+          refresh_token: newTokens.refresh_token || stored.refresh_token,
         },
         expires_at: newExpires,
         updated_at: new Date().toISOString(),
