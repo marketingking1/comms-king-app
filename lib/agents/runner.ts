@@ -1,11 +1,16 @@
-import { streamText } from 'ai';
+import { streamText, type ModelMessage } from 'ai';
 import { loadAgent } from './loader';
 import { calculateCost, getAgentRoute, getModel, type AgentName } from '@/lib/ai/providers';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 
+export type ChatTurn = { role: 'user' | 'assistant'; content: string };
+
 export type RunAgentInput = {
   agent: AgentName;
-  userMessage: string;
+  /** Single-turn (back-compat). Use `messages` for multi-turn. */
+  userMessage?: string;
+  /** Conversation history. Last entry must be role:'user'. */
+  messages?: ChatTurn[];
   triggeredByUserId?: string;
   relatedEntityType?: string;
   relatedEntityId?: string;
@@ -21,10 +26,15 @@ export async function runAgentStreaming(input: RunAgentInput) {
   const model = getModel(input.agent);
   const startedAt = Date.now();
 
+  const conversation: ModelMessage[] =
+    input.messages && input.messages.length > 0
+      ? input.messages.map((m) => ({ role: m.role, content: m.content }))
+      : [{ role: 'user', content: input.userMessage ?? '' }];
+
   const result = streamText({
     model,
     system: spec.systemPrompt,
-    messages: [{ role: 'user', content: input.userMessage }],
+    messages: conversation,
     onFinish: async ({ usage, finishReason, text }) => {
       const inputTokens = usage?.inputTokens ?? 0;
       const outputTokens = usage?.outputTokens ?? 0;

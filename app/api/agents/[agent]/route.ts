@@ -8,11 +8,27 @@ import { z } from 'zod';
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5min
 
-const BodySchema = z.object({
-  message: z.string().min(1).max(50000),
-  relatedEntityType: z.string().max(100).optional(),
-  relatedEntityId: z.string().uuid().optional(),
+const ChatTurnSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().min(1).max(50000),
 });
+
+const BodySchema = z
+  .object({
+    // Back-compat: single-turn
+    message: z.string().min(1).max(50000).optional(),
+    // Multi-turn chat (last item deve ser role:'user')
+    messages: z.array(ChatTurnSchema).max(40).optional(),
+    relatedEntityType: z.string().max(100).optional(),
+    relatedEntityId: z.string().uuid().optional(),
+  })
+  .refine((b) => !!b.message || (!!b.messages && b.messages.length > 0), {
+    message: 'message or messages required',
+  })
+  .refine(
+    (b) => !b.messages || b.messages[b.messages.length - 1].role === 'user',
+    { message: 'last message must be role:user' },
+  );
 
 // Allowlist de agentes — preenchida no primeiro hit
 let AGENT_ALLOWLIST: Set<string> | null = null;
@@ -54,6 +70,7 @@ export async function POST(
     const result = await runAgentStreaming({
       agent: agent as AgentName,
       userMessage: body.message,
+      messages: body.messages,
       triggeredByUserId: user.id,
       relatedEntityType: body.relatedEntityType,
       relatedEntityId: body.relatedEntityId,
