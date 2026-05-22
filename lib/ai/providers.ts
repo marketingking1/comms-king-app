@@ -25,40 +25,43 @@ type ProviderRoute = {
   maxTokens: number;
 };
 
+// Stack 100% OpenAI até créditos Anthropic voltarem.
+// gpt-4o: estratégico/criativo (head, million-strategist, storyteller-viral, scriptwriter)
+// gpt-4o-mini: utilitários (curator, editor, producer, community, analyst, zeitgeist)
 const ROUTING: Record<AgentName, ProviderRoute> = {
   'comms-head': {
-    provider: 'anthropic',
-    model: 'claude-opus-4-7',
+    provider: 'openai',
+    model: 'gpt-4o',
     maxTokens: 8000,
   },
   'comms-million-strategist': {
-    provider: 'anthropic',
-    model: 'claude-opus-4-7',
+    provider: 'openai',
+    model: 'gpt-4o',
     maxTokens: 8000,
   },
   'comms-storyteller-viral': {
-    provider: 'anthropic',
-    model: 'claude-opus-4-7',
+    provider: 'openai',
+    model: 'gpt-4o',
     maxTokens: 8000,
   },
-  'comms-zeitgeist-hunter': {
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-6',
-    maxTokens: 4000,
-  },
   'comms-scriptwriter': {
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-6',
+    provider: 'openai',
+    model: 'gpt-4o',
     maxTokens: 6000,
   },
+  'comms-zeitgeist-hunter': {
+    provider: 'openai',
+    model: 'gpt-4o-mini',
+    maxTokens: 4000,
+  },
   'comms-community-manager': {
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-6',
+    provider: 'openai',
+    model: 'gpt-4o-mini',
     maxTokens: 4000,
   },
   'comms-analyst-io': {
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-6',
+    provider: 'openai',
+    model: 'gpt-4o-mini',
     maxTokens: 5000,
   },
   'comms-funnel-curator': {
@@ -94,6 +97,7 @@ const PRICING: Record<string, { input: number; output: number }> = {
   'claude-opus-4-7': { input: 15, output: 75 },
   'claude-sonnet-4-6': { input: 3, output: 15 },
   'claude-haiku-4-5-20251001': { input: 1, output: 5 },
+  'gpt-4o': { input: 2.5, output: 10 },
   'gpt-4o-mini': { input: 0.15, output: 0.6 },
 };
 
