@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendsToolbar } from "./toolbar";
 import { TrendCard } from "./trend-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Flame, Newspaper, Star, Zap } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +14,6 @@ const SOURCE_LABELS: Record<string, string> = {
   tiktok: "TikTok",
   reddit: "Reddit",
   news: "Notícias",
-};
-
-const SOURCE_EMOJI: Record<string, string> = {
-  google_trends: "🔥",
-  twitter: "𝕏",
-  tiktok: "🎵",
-  reddit: "🅁",
-  news: "📰",
 };
 
 export default async function TrendsPage() {
@@ -63,9 +56,12 @@ export default async function TrendsPage() {
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground space-y-3">
             <p>Sem trends ainda. Clique em &quot;Atualizar&quot; pra buscar.</p>
-            <p className="text-xs">
-              ⚡ Google Trends + 📰 Notícias = rápido (~10s, free)<br />
-              𝕏 Twitter + 🅁 Reddit + 🎵 TikTok = via Apify (~1-3min)
+            <p className="text-xs flex flex-col items-center gap-1">
+              <span className="inline-flex items-center gap-1">
+                <Zap className="h-3 w-3" aria-hidden="true" />
+                Google Trends + Notícias = rápido (~10s, free)
+              </span>
+              <span>Twitter + Reddit + TikTok = via Apify (~1-3min)</span>
             </p>
           </CardContent>
         </Card>
@@ -76,7 +72,8 @@ export default async function TrendsPage() {
             <Card className="border-primary/30 bg-gradient-to-br from-primary/[0.04] to-transparent">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  ⭐ Alta relevância pra King ({highRelevance.length})
+                  <Star className="h-4 w-4" aria-hidden="true" />
+                  Alta relevância pra King ({highRelevance.length})
                 </CardTitle>
                 <CardDescription>
                   Trends que o squad pode aproveitar HOJE — clique &quot;Caçar pauta&quot; pra criar zeitgeist piece
@@ -96,7 +93,9 @@ export default async function TrendsPage() {
               <TabsTrigger value="all">Tudo ({trends.length})</TabsTrigger>
               {Array.from(bySource.entries()).map(([source, items]) => (
                 <TabsTrigger key={source} value={source}>
-                  {SOURCE_EMOJI[source]} {SOURCE_LABELS[source] || source} ({items?.length})
+                  {source === "google_trends" && <Flame className="h-3 w-3 mr-1" aria-hidden="true" />}
+                  {source === "news" && <Newspaper className="h-3 w-3 mr-1" aria-hidden="true" />}
+                  {SOURCE_LABELS[source] || source} ({items?.length})
                 </TabsTrigger>
               ))}
             </TabsList>

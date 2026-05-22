@@ -61,17 +61,17 @@ export function TrendsToolbar({ lastFetched }: { lastFetched?: string }) {
           {running ? "Buscando..." : "Atualizar"}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => refresh(["google_trends", "news"])}>
-            ⚡ Rápido — Google Trends + Notícias (~10s · free)
+          <DropdownMenuItem onClick={() => refresh(["google_trends", "news"])} className="cursor-pointer">
+            Rápido — Google Trends + Notícias (~10s · free)
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => refresh(["google_trends", "news", "twitter"])}>
-            𝕏 + Twitter (~1min · ~$0.02)
+          <DropdownMenuItem onClick={() => refresh(["google_trends", "news", "twitter"])} className="cursor-pointer">
+            + Twitter (~1min · ~$0.02)
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => refresh(["google_trends", "news", "twitter", "reddit"])}>
-            🅁 + Reddit (~2min · ~$0.05)
+          <DropdownMenuItem onClick={() => refresh(["google_trends", "news", "twitter", "reddit"])} className="cursor-pointer">
+            + Reddit (~2min · ~$0.05)
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => refresh(["google_trends", "news", "twitter", "reddit", "tiktok"])}>
-            🎵 Completo — + TikTok (~3min · ~$0.10)
+          <DropdownMenuItem onClick={() => refresh(["google_trends", "news", "twitter", "reddit", "tiktok"])} className="cursor-pointer">
+            Completo — + TikTok (~3min · ~$0.10)
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

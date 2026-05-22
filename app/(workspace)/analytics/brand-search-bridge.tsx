@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 
 type DailyPoint = {
   date: string;
@@ -130,18 +131,23 @@ export function BrandSearchBridge({ posts, searches, correlations }: Props) {
             <div className="mt-3 text-xs text-muted-foreground space-y-1">
               <p>
                 {Math.abs(bestLag.pearson) > 0.4 ? (
-                  <>
-                    ✅ <strong className="text-foreground">Correlação forte</strong> com lag de{" "}
-                    <strong className="text-foreground">{bestLag.lag} dia(s)</strong> (r={bestLag.pearson.toFixed(2)}). Posts em IG estão puxando busca pela marca.
-                  </>
+                  <span className="inline-flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-emerald-600 flex-shrink-0" aria-hidden="true" />
+                    <span>
+                      <strong className="text-foreground">Correlação forte</strong> com lag de{" "}
+                      <strong className="text-foreground">{bestLag.lag} dia(s)</strong> (r={bestLag.pearson.toFixed(2)}). Posts em IG estão puxando busca pela marca.
+                    </span>
+                  </span>
                 ) : Math.abs(bestLag.pearson) > 0.2 ? (
-                  <>
-                    ⚠️ Correlação fraca (r={bestLag.pearson.toFixed(2)} no lag {bestLag.lag}d). Sinal incipiente — manter monitorando.
-                  </>
+                  <span className="inline-flex items-start gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-amber-600 flex-shrink-0" aria-hidden="true" />
+                    <span>Correlação fraca (r={bestLag.pearson.toFixed(2)} no lag {bestLag.lag}d). Sinal incipiente — manter monitorando.</span>
+                  </span>
                 ) : (
-                  <>
-                    ❌ Sem correlação clara. Posts orgânicos atuais não estão gerando search lift mensurável.
-                  </>
+                  <span className="inline-flex items-start gap-1.5">
+                    <XCircle className="h-3.5 w-3.5 mt-0.5 text-destructive flex-shrink-0" aria-hidden="true" />
+                    <span>Sem correlação clara. Posts orgânicos atuais não estão gerando search lift mensurável.</span>
+                  </span>
                 )}
               </p>
               <p className="text-[10px]">

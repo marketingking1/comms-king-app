@@ -109,7 +109,7 @@ Aplique o processo de 5 etapas (Captura → Filtro King → Ângulo Contrário/P
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="le48h">⚡ ≤48h (Fast-track)</SelectItem>
+                  <SelectItem value="le48h">≤48h (Fast-track)</SelectItem>
                   <SelectItem value="1-2sem">1-2 semanas</SelectItem>
                   <SelectItem value="2-4sem">2-4 semanas</SelectItem>
                   <SelectItem value="30+">Evergreen cultural</SelectItem>

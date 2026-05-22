@@ -13,7 +13,7 @@ export default async function WorkspaceLayout({
   if (!user) redirect("/login");
 
   return (
-    <div className="flex flex-1">
+    <div className="flex flex-1 flex-col lg:flex-row">
       <Sidebar />
       <main className="flex-1 min-h-screen bg-background">
         {children}

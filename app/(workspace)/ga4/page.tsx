@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { AlertTriangle, ExternalLink, Plug } from "lucide-react";
+import { AlertTriangle, ExternalLink, Plug, Instagram, Mic, Target } from "lucide-react";
 import Link from "next/link";
 import { SetupWizard, PropertySelector, DisconnectButton } from "./setup";
 
@@ -71,7 +71,10 @@ export default async function Ga4Page({
           <CardContent className="space-y-4">
             <SetupWizard />
             <div className="text-xs text-muted-foreground border-l-2 pl-3 space-y-2">
-              <p className="font-medium text-foreground">⚠️ Antes de conectar:</p>
+              <p className="font-medium text-foreground flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                Antes de conectar:
+              </p>
               <p>
                 Adicione esta URL como <em>Authorized redirect URI</em> no OAuth Client do Google Cloud Console:
               </p>
@@ -157,7 +160,10 @@ export default async function Ga4Page({
       {/* Tráfego orgânico Instagram */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">📸 Tráfego orgânico — Instagram</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Instagram className="h-4 w-4" aria-hidden="true" />
+            Tráfego orgânico — Instagram
+          </CardTitle>
           <CardDescription>
             Sessions onde sessionSource contém &quot;instagram&quot; ou &quot;ig&quot;
           </CardDescription>
@@ -194,7 +200,10 @@ export default async function Ga4Page({
       {/* Influenciadores */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">🎤 Tráfego de influenciadores</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Mic className="h-4 w-4" aria-hidden="true" />
+            Tráfego de influenciadores
+          </CardTitle>
           <CardDescription>
             UTM medium contendo &quot;influencer/creator&quot;, campaign contendo &quot;influ&quot;, ou medium=referral
           </CardDescription>
@@ -210,7 +219,7 @@ export default async function Ga4Page({
               </span>
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[500px] table-sticky">
               <table className="w-full text-xs">
                 <thead className="text-muted-foreground">
                   <tr className="border-b">
@@ -247,13 +256,16 @@ export default async function Ga4Page({
       {/* Top campanhas */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">🎯 Top campanhas UTM</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Target className="h-4 w-4" aria-hidden="true" />
+            Top campanhas UTM
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {!campaigns?.rows?.length ? (
             <p className="text-sm text-muted-foreground">Sem campanhas com UTM no período</p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[500px] table-sticky">
               <table className="w-full text-xs">
                 <thead className="text-muted-foreground">
                   <tr className="border-b">
@@ -291,7 +303,7 @@ export default async function Ga4Page({
           {!overview?.rows?.length ? (
             <p className="text-sm text-muted-foreground">Sem dados</p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[500px] table-sticky">
               <table className="w-full text-xs">
                 <thead className="text-muted-foreground">
                   <tr className="border-b">

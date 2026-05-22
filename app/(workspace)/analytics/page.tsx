@@ -297,22 +297,23 @@ export default async function AnalyticsPage() {
 
       {/* TOP & BOTTOM */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TopPiecesCard title="🚀 TOP por share rate" pieces={topShare} metric={shareRate} unit="%" />
-        <TopPiecesCard title="💾 TOP por save rate" pieces={topSave} metric={saveRate} unit="%" />
-        <TopPiecesCard title="💬 TOP por comment rate" pieces={topComment} metric={commentRate} unit="%" />
-        <TopPiecesCard title="⏱️ TOP Reels por watch %" pieces={topWatch} metric={watchThroughRate} unit="%" />
-        <TopPiecesCard title="🔥 TOP por engagement" pieces={topEngagement} metric={engagementRate} unit="%" />
-        <TopPiecesCard title="❄️ BOTTOM por share rate" pieces={bottomShare} metric={shareRate} unit="%" inverted />
+        <TopPiecesCard title="TOP por share rate" pieces={topShare} metric={shareRate} unit="%" />
+        <TopPiecesCard title="TOP por save rate" pieces={topSave} metric={saveRate} unit="%" />
+        <TopPiecesCard title="TOP por comment rate" pieces={topComment} metric={commentRate} unit="%" />
+        <TopPiecesCard title="TOP Reels por watch %" pieces={topWatch} metric={watchThroughRate} unit="%" />
+        <TopPiecesCard title="TOP por engagement" pieces={topEngagement} metric={engagementRate} unit="%" />
+        <TopPiecesCard title="BOTTOM por share rate" pieces={bottomShare} metric={shareRate} unit="%" inverted />
       </div>
 
       {/* Velocity */}
       {velocity.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">⚡ Velocity — publicadas nas últimas 72h</CardTitle>
+            <CardTitle className="text-base">Velocity — publicadas nas últimas 72h</CardTitle>
             <CardDescription>Peças recém-publicadas com tração acima da média (replicar formato)</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="overflow-auto max-h-[400px] table-sticky">
             <table className="w-full text-xs">
               <thead className="text-muted-foreground">
                 <tr className="border-b">
@@ -345,6 +346,7 @@ export default async function AnalyticsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </CardContent>
         </Card>
       )}

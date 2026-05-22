@@ -361,6 +361,7 @@ export default async function SalesPage({
             <CardDescription>Quem fecha mais leads IG orgânico</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="overflow-auto max-h-[420px] table-sticky">
             <table className="w-full text-xs">
               <thead className="text-muted-foreground">
                 <tr className="border-b">
@@ -391,6 +392,7 @@ export default async function SalesPage({
                 ))}
               </tbody>
             </table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -476,6 +478,7 @@ export default async function SalesPage({
           {igOrganic.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum lead orgânico identificado no período</p>
           ) : (
+            <div className="overflow-auto max-h-[500px] table-sticky">
             <table className="w-full text-xs">
               <thead className="text-muted-foreground">
                 <tr className="border-b">
@@ -518,6 +521,7 @@ export default async function SalesPage({
                   })}
               </tbody>
             </table>
+            </div>
           )}
         </CardContent>
       </Card>

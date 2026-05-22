@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ZeitgeistActions } from "./actions";
-import { Clock } from "lucide-react";
+import { Clock, Zap } from "lucide-react";
 
 export default async function ZeitgeistDetailPage({
   params,
@@ -52,7 +52,11 @@ export default async function ZeitgeistDetailPage({
           >
             {piece.status}
           </Badge>
-          {isFastTrack && <Badge variant="outline">⚡ Fast-track</Badge>}
+          {isFastTrack && (
+            <Badge variant="outline" className="gap-1">
+              <Zap className="h-3 w-3" aria-hidden="true" /> Fast-track
+            </Badge>
+          )}
         </div>
       </div>
 

@@ -146,8 +146,8 @@ export function HookDna({ topPieces, bottomPieces }: { topPieces: PieceSnapshot[
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <PieceColumn title="🚀 TOP" pieces={topPieces} classes={topClasses} positive />
-              <PieceColumn title="❄️ BOTTOM" pieces={bottomPieces} classes={bottomClasses} positive={false} />
+              <PieceColumn title="TOP" pieces={topPieces} classes={topClasses} positive />
+              <PieceColumn title="BOTTOM" pieces={bottomPieces} classes={bottomClasses} positive={false} />
             </div>
           </div>
         )}
