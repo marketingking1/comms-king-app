@@ -31,10 +31,24 @@ export async function runAgentStreaming(input: RunAgentInput) {
       ? input.messages.map((m) => ({ role: m.role, content: m.content }))
       : [{ role: 'user', content: input.userMessage ?? '' }];
 
+  // Log telemetry pré-call — útil pra debugar context overflow
+  const systemChars = spec.systemPrompt.length;
+  const userChars = conversation.reduce((a, m) => a + m.content.length, 0);
+  console.info('[runner]', {
+    agent: input.agent,
+    model: route.model,
+    systemChars,
+    userChars,
+    turns: conversation.length,
+  });
+
   const result = streamText({
     model,
     system: spec.systemPrompt,
     messages: conversation,
+    onError: ({ error }) => {
+      console.error('[runner] streamText error', { agent: input.agent, error });
+    },
     onFinish: async ({ usage, finishReason, text }) => {
       const inputTokens = usage?.inputTokens ?? 0;
       const outputTokens = usage?.outputTokens ?? 0;

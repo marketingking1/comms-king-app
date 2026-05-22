@@ -25,6 +25,10 @@ export function GenerateBigIdeasButton({
     setRunning(true);
     setOutput("");
     try {
+      if (!briefMarkdown || briefMarkdown.trim().length < 50) {
+        throw new Error("Brief sem conteúdo (raw_markdown vazio). Salve o brief com texto antes.");
+      }
+
       const res = await fetch("/api/agents/comms-million-strategist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -35,7 +39,17 @@ export function GenerateBigIdeasButton({
         }),
       });
 
-      if (!res.ok) throw new Error("Erro ao rodar agente");
+      if (!res.ok) {
+        const body = await res.text();
+        let detail = body;
+        try {
+          const json = JSON.parse(body);
+          detail = json.error || json.message || body;
+        } catch {
+          // body is plain text, use as-is
+        }
+        throw new Error(`HTTP ${res.status}: ${detail.slice(0, 300)}`);
+      }
 
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();

@@ -8,15 +8,19 @@ import { z } from 'zod';
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5min
 
+// Limite de 200k chars/mensagem — briefs com transcript podem passar de 50k.
+// 200k chars ≈ 50k tokens (margem ampla dentro do contexto Opus 4.7 1M).
+const MAX_CHARS = 200_000;
+
 const ChatTurnSchema = z.object({
   role: z.enum(['user', 'assistant']),
-  content: z.string().min(1).max(50000),
+  content: z.string().min(1).max(MAX_CHARS),
 });
 
 const BodySchema = z
   .object({
     // Back-compat: single-turn
-    message: z.string().min(1).max(50000).optional(),
+    message: z.string().min(1).max(MAX_CHARS).optional(),
     // Multi-turn chat (last item deve ser role:'user')
     messages: z.array(ChatTurnSchema).max(40).optional(),
     relatedEntityType: z.string().max(100).optional(),
@@ -62,8 +66,9 @@ export async function POST(
   let body: z.infer<typeof BodySchema>;
   try {
     body = BodySchema.parse(await request.json());
-  } catch {
-    return Response.json({ error: 'invalid body' }, { status: 400 });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : 'invalid body';
+    return Response.json({ error: `invalid body: ${detail}` }, { status: 400 });
   }
 
   try {
@@ -78,7 +83,8 @@ export async function POST(
 
     return result.toTextStreamResponse();
   } catch (e) {
-    console.error('[api/agents]', e);
-    return Response.json({ error: 'internal' }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[api/agents]', { agent, error: msg, stack: e instanceof Error ? e.stack : undefined });
+    return Response.json({ error: `agent error: ${msg.slice(0, 300)}` }, { status: 500 });
   }
 }
