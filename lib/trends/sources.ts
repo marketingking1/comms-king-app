@@ -15,12 +15,18 @@ export type RawTrend = {
 const APIFY_TOKEN = process.env.APIFY_TOKEN!;
 
 async function runApifyActor(actorId: string, input: object, timeoutMs = 180000): Promise<unknown[]> {
-  const startRes = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${APIFY_TOKEN}`, {
+  // Apify path canônico usa ~ entre user/name (não /)
+  const actorPath = actorId.replace("/", "~");
+  const startRes = await fetch(`https://api.apify.com/v2/acts/${actorPath}/runs?token=${APIFY_TOKEN}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
-  if (!startRes.ok) throw new Error(`Apify start failed: ${await startRes.text()}`);
+  if (!startRes.ok) {
+    const errText = await startRes.text();
+    console.error(`[apify] start ${actorPath} failed: ${startRes.status} ${errText.slice(0, 300)}`);
+    throw new Error(`Apify start ${actorPath} failed: ${startRes.status}`);
+  }
   const startData = (await startRes.json()) as { data: { id: string; defaultDatasetId: string } };
   const runId = startData.data.id;
   const datasetId = startData.data.defaultDatasetId;
