@@ -31,10 +31,13 @@ export async function GET() {
   };
 
   const targets: Array<{ provider: string; model: string; factory: () => ReturnType<typeof anthropic> | ReturnType<typeof openai> }> = [
-    { provider: 'openai', model: 'gpt-4o-mini', factory: () => openai('gpt-4o-mini') },
+    { provider: 'openai', model: 'gpt-5.5', factory: () => openai('gpt-5.5') },
+    { provider: 'openai', model: 'gpt-5.4', factory: () => openai('gpt-5.4') },
+    { provider: 'openai', model: 'gpt-5.4-mini', factory: () => openai('gpt-5.4-mini') },
+    { provider: 'openai', model: 'gpt-5.1', factory: () => openai('gpt-5.1') },
     { provider: 'openai', model: 'gpt-4o', factory: () => openai('gpt-4o') },
+    { provider: 'openai', model: 'gpt-4o-mini', factory: () => openai('gpt-4o-mini') },
     { provider: 'anthropic', model: 'claude-opus-4-7', factory: () => anthropic('claude-opus-4-7') },
-    { provider: 'anthropic', model: 'claude-sonnet-4-6', factory: () => anthropic('claude-sonnet-4-6') },
   ];
 
   for (const t of targets) {
