@@ -4,6 +4,7 @@ import {
   getTikTokTrending,
   getRedditTrending,
   getNewsTrending,
+  getTwitterTrending,
   type RawTrend,
 } from "@/lib/trends/sources";
 import { classifyTrendsRelevance } from "@/lib/trends/classify";
@@ -14,7 +15,7 @@ export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
-  const sources: string[] = body.sources || ["google_trends", "tiktok", "reddit", "news"];
+  const sources: string[] = body.sources || ["google_trends", "twitter", "tiktok", "reddit", "news"];
 
   const supabase = createSupabaseAdminClient();
   const startedAt = Date.now();
@@ -23,7 +24,8 @@ export async function POST(request: NextRequest) {
   const fetchTasks: Array<Promise<RawTrend[]>> = [];
   if (sources.includes("google_trends")) fetchTasks.push(getGoogleTrendsDaily());
   if (sources.includes("news")) fetchTasks.push(getNewsTrending());
-  // TikTok e Reddit usam Apify (mais lento) — opcionais via body
+  // Apify sources (mais lentos)
+  if (sources.includes("twitter")) fetchTasks.push(getTwitterTrending());
   if (sources.includes("tiktok")) fetchTasks.push(getTikTokTrending());
   if (sources.includes("reddit")) fetchTasks.push(getRedditTrending());
 

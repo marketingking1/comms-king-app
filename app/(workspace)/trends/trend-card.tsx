@@ -23,6 +23,7 @@ type Trend = {
 
 const SOURCE_LABELS: Record<string, string> = {
   google_trends: "Google",
+  twitter: "𝕏",
   tiktok: "TikTok",
   reddit: "Reddit",
   news: "Notícias",
@@ -30,6 +31,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 const SOURCE_COLORS: Record<string, string> = {
   google_trends: "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
+  twitter: "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900",
   tiktok: "bg-pink-100 text-pink-700 dark:bg-pink-950/40 dark:text-pink-300",
   reddit: "bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300",
   news: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",

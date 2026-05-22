@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 const SOURCE_LABELS: Record<string, string> = {
   google_trends: "Google Trends",
+  twitter: "Twitter / X",
   tiktok: "TikTok",
   reddit: "Reddit",
   news: "Notícias",
@@ -16,6 +17,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 const SOURCE_EMOJI: Record<string, string> = {
   google_trends: "🔥",
+  twitter: "𝕏",
   tiktok: "🎵",
   reddit: "🅁",
   news: "📰",
@@ -60,10 +62,10 @@ export default async function TrendsPage() {
       {!trends?.length ? (
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground space-y-3">
-            <p>Sem trends ainda. Clique em &quot;Atualizar agora&quot; pra buscar.</p>
+            <p>Sem trends ainda. Clique em &quot;Atualizar&quot; pra buscar.</p>
             <p className="text-xs">
-              ⚡ Google Trends + 📰 Notícias = rápido (~5s)<br />
-              🎵 TikTok + 🅁 Reddit = lento (~2-3min via Apify)
+              ⚡ Google Trends + 📰 Notícias = rápido (~10s, free)<br />
+              𝕏 Twitter + 🅁 Reddit + 🎵 TikTok = via Apify (~1-3min)
             </p>
           </CardContent>
         </Card>

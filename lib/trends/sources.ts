@@ -3,7 +3,7 @@
  */
 
 export type RawTrend = {
-  source: "google_trends" | "tiktok" | "reddit" | "news";
+  source: "google_trends" | "tiktok" | "reddit" | "news" | "twitter";
   topic: string;
   description?: string;
   url?: string;
@@ -246,4 +246,65 @@ function parseNewsRSS(xml: string): RawTrend[] {
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
+}
+
+// =========================================================
+// TWITTER / X — trending topics Brasil (karamelo actor)
+// =========================================================
+
+export async function getTwitterTrending(): Promise<RawTrend[]> {
+  try {
+    const items = (await runApifyActor("karamelo/twitter-trends-scraper", {
+      country: "30", // Brazil
+      live: true,
+      hour24: true,
+    }, 180000)) as Array<{
+      trend?: string;
+      volume?: string;
+      timePeriod?: string;
+      time?: string;
+    }>;
+
+    // Dedup por trend (Live + hour24 podem repetir)
+    const seen = new Map<string, { volume: number; periods: string[] }>();
+    for (const v of items) {
+      if (!v.trend) continue;
+      const trend = v.trend.trim();
+      // Volume vem como "10K", "100K", "1M" ou ""
+      const vol = parseVolumeStr(v.volume || "");
+      const cur = seen.get(trend) || { volume: 0, periods: [] };
+      cur.volume = Math.max(cur.volume, vol);
+      if (v.timePeriod && !cur.periods.includes(v.timePeriod)) cur.periods.push(v.timePeriod);
+      seen.set(trend, cur);
+    }
+
+    return Array.from(seen.entries())
+      .sort((a, b) => b[1].volume - a[1].volume)
+      .slice(0, 30)
+      .map(([trend, data]) => ({
+        source: "twitter" as const,
+        topic: trend,
+        description: data.periods.includes("Live")
+          ? "Em alta agora"
+          : `Em alta nas últimas ${data.periods.join(" / ")}`,
+        url: `https://x.com/search?q=${encodeURIComponent(trend)}&src=trend_click`,
+        volume_score: data.volume || undefined,
+        metadata: { periods: data.periods },
+      }));
+  } catch (e) {
+    console.error("[twitter]", e);
+    return [];
+  }
+}
+
+function parseVolumeStr(v: string): number {
+  if (!v) return 0;
+  const m = v.match(/([\d.]+)\s*([KMB])?/i);
+  if (!m) return 0;
+  const num = parseFloat(m[1]);
+  const unit = (m[2] || "").toUpperCase();
+  if (unit === "K") return num * 1000;
+  if (unit === "M") return num * 1_000_000;
+  if (unit === "B") return num * 1_000_000_000;
+  return num;
 }
