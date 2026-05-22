@@ -1,14 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  listLeads,
-  listPipelines,
-  listUsers,
   KOMMO_PIPELINES,
   KOMMO_TAGS,
   STATUS_WON,
   STATUS_LOST,
 } from "@/lib/kommo/client";
+import { listLeadsCached, listPipelinesCached, listUsersCached } from "@/lib/kommo/cached";
 import {
   classifyLeadSource,
   calcFunnelStats,
@@ -20,7 +18,7 @@ import {
   type LeadSource,
 } from "@/lib/sales/funnel";
 import { DateFilter } from "./date-filter";
-import { getAccountInsights, listMedia, getMediaInsights } from "@/lib/instagram/graph";
+import { getAccountInsightsCached, listMediaCached, getMediaInsightsCached } from "@/lib/instagram/cached";
 import { buildDailyPostsSeries } from "@/lib/instagram/analytics-advanced";
 import { pLimit } from "@/lib/utils/p-limit";
 import { AlertTriangle, TrendingUp, TrendingDown, DollarSign, Users, Target, Clock, Instagram } from "lucide-react";
@@ -77,18 +75,18 @@ export default async function SalesPage({
     igInsights,
     igMedia,
   ] = await Promise.all([
-    listPipelines().catch((e) => { kommoErr = String(e); return []; }),
-    listUsers().catch(() => []),
-    listLeads({ createdAfter: since, createdBefore: until, withTags: true, maxItems: 8000 })
+    listPipelinesCached().catch((e) => { kommoErr = String(e); return []; }),
+    listUsersCached().catch(() => []),
+    listLeadsCached({ createdAfter: since, createdBefore: until, withTags: true, maxItems: 8000 })
       .catch((e) => { kommoErr = String(e); return []; }),
-    listLeads({ createdAfter: sincePrev, createdBefore: untilPrev, withTags: true, maxItems: 8000 })
+    listLeadsCached({ createdAfter: sincePrev, createdBefore: untilPrev, withTags: true, maxItems: 8000 })
       .catch(() => []),
-    listLeads({ pipelineId: KOMMO_PIPELINES.social_selling, createdAfter: since, createdBefore: until, maxItems: 2000 })
+    listLeadsCached({ pipelineId: KOMMO_PIPELINES.social_selling, createdAfter: since, createdBefore: until, maxItems: 2000 })
       .catch(() => []),
-    listLeads({ pipelineId: KOMMO_PIPELINES.social_selling, createdAfter: sincePrev, createdBefore: untilPrev, maxItems: 2000 })
+    listLeadsCached({ pipelineId: KOMMO_PIPELINES.social_selling, createdAfter: sincePrev, createdBefore: untilPrev, maxItems: 2000 })
       .catch(() => []),
-    getAccountInsights(rangeDays).catch((e) => { igErr = String(e); return undefined; }),
-    listMedia(60).catch(() => []),
+    getAccountInsightsCached(rangeDays).catch((e) => { igErr = String(e); return undefined; }),
+    listMediaCached(60).catch(() => []),
   ]);
 
   // Filtrar client-side: tag OR pipeline
@@ -149,7 +147,7 @@ export default async function SalesPage({
         .map((m) =>
           igLimit(async () => ({
             media: m,
-            insights: await getMediaInsights(m.id, m.media_product_type === "REELS").catch(() => ({})),
+            insights: await getMediaInsightsCached(m.id, m.media_product_type === "REELS").catch(() => ({})),
           })),
         ),
     )),

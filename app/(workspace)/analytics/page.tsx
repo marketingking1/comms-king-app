@@ -1,12 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getAccountInfo, type IgMedia } from "@/lib/instagram/graph";
 import {
-  getAccountInfo,
-  getAccountInsights,
-  listMedia,
-  getMediaInsights,
-  type IgMedia,
-} from "@/lib/instagram/graph";
+  getAccountInsightsCached,
+  listMediaCached,
+  getMediaInsightsCached,
+} from "@/lib/instagram/cached";
 import {
   type PieceWithInsights,
   shareRate,
@@ -53,9 +52,9 @@ export default async function AnalyticsPage() {
   try {
     [accountInfo, insights, prevInsights, mediaList] = await Promise.all([
       getAccountInfo(),
-      getAccountInsights(DAYS),
-      getAccountInsights(DAYS, DAYS),
-      listMedia(60),
+      getAccountInsightsCached(DAYS),
+      getAccountInsightsCached(DAYS, DAYS),
+      listMediaCached(60),
     ]);
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
@@ -67,7 +66,7 @@ export default async function AnalyticsPage() {
     (mediaList || []).map((m) =>
       limit(async () => ({
         media: m,
-        insights: await getMediaInsights(m.id, m.media_product_type === "REELS").catch(() => ({})),
+        insights: await getMediaInsightsCached(m.id, m.media_product_type === "REELS").catch(() => ({})),
       })),
     ),
   );
