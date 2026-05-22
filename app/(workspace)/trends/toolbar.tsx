@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -54,11 +53,12 @@ export function TrendsToolbar({ lastFetched }: { lastFetched?: string }) {
         </span>
       )}
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button disabled={running}>
-            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            {running ? "Buscando..." : "Atualizar"}
-          </Button>
+        <DropdownMenuTrigger
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-3 h-8 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none"
+          disabled={running}
+        >
+          {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {running ? "Buscando..." : "Atualizar"}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => refresh(["google_trends", "news"])}>
