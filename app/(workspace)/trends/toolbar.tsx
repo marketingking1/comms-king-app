@@ -54,7 +54,7 @@ export function TrendsToolbar({ lastFetched }: { lastFetched?: string }) {
       )}
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-3 h-8 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground px-4 h-9 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none cursor-pointer transition-colors"
           disabled={running}
         >
           {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}

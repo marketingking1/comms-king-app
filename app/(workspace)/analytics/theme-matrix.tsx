@@ -187,7 +187,7 @@ export function ThemeMatrix({ clusters }: { clusters: ClusterPoint[] }) {
                     key={c.label}
                     onMouseEnter={() => setHover(c)}
                     onMouseLeave={() => setHover(null)}
-                    className="w-full text-left text-xs border rounded p-2 hover:bg-accent/30 transition-colors"
+                    className="w-full text-left text-xs border rounded p-2 hover:bg-accent/30 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium truncate flex-1">{c.label}</span>

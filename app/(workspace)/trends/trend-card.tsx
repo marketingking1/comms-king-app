@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { ExternalLink, Sparkles, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 
 type Trend = {
@@ -73,7 +73,10 @@ export function TrendCard({ trend }: { trend: Trend }) {
             {SOURCE_LABELS[trend.source] || trend.source}
           </Badge>
           {trend.king_relevance === "high" && (
-            <Badge variant="default" className="text-[10px]">⭐ Alta</Badge>
+            <Badge variant="default" className="text-[10px] gap-1">
+              <Star className="h-2.5 w-2.5" aria-hidden="true" />
+              Alta
+            </Badge>
           )}
           {trend.king_relevance === "medium" && (
             <Badge variant="secondary" className="text-[10px]">Média</Badge>
