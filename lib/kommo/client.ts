@@ -115,6 +115,7 @@ export async function listUsers(): Promise<User[]> {
  */
 export async function listLeads(opts: {
   createdAfter?: number;
+  createdBefore?: number;
   pipelineId?: number;
   statusId?: number;
   tagId?: number;          // filtra por tag id — pega todos pipelines
@@ -131,6 +132,9 @@ export async function listLeads(opts: {
     params.set("page", String(page));
     if (opts.createdAfter) {
       params.set("filter[created_at][from]", String(opts.createdAfter));
+    }
+    if (opts.createdBefore) {
+      params.set("filter[created_at][to]", String(opts.createdBefore));
     }
     if (opts.pipelineId) {
       params.set("filter[pipeline_id]", String(opts.pipelineId));

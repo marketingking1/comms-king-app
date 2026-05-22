@@ -14,26 +14,53 @@ import {
   calcFunnelStats,
   statsByStatus,
   statsBySeller,
-  dailyLeadsTimeline,
+  dailyLeadsTimelineRange,
   calcCycleTime,
   pearson,
   type LeadSource,
 } from "@/lib/sales/funnel";
+import { DateFilter } from "./date-filter";
 import { getAccountInsights, listMedia, getMediaInsights } from "@/lib/instagram/graph";
 import { buildDailyPostsSeries } from "@/lib/instagram/analytics-advanced";
 import { AlertTriangle, TrendingUp, TrendingDown, DollarSign, Users, Target, Clock, Instagram } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-const DAYS = 30;
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+function firstDayOfMonthISO(): string {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+}
 
-export default async function SalesPage() {
+export default async function SalesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const sp = await searchParams;
+  // Defaults: 1º dia do mês até hoje (MTD)
+  const fromStr = sp.from || firstDayOfMonthISO();
+  const toStr = sp.to || todayISO();
+
+  // Converter pra epoch seconds
+  const fromDate = new Date(fromStr + "T00:00:00Z");
+  const toDate = new Date(toStr + "T23:59:59Z");
+  const since = Math.floor(fromDate.getTime() / 1000);
+  const until = Math.floor(toDate.getTime() / 1000);
+  const rangeDays = Math.max(
+    Math.ceil((toDate.getTime() - fromDate.getTime()) / (24 * 3600 * 1000)),
+    1,
+  );
+
   // ============ FETCH PARALELO ============
   let kommoErr: string | null = null;
   let igErr: string | null = null;
 
-  const since = Math.floor(Date.now() / 1000) - DAYS * 86400;
-  const sincePrev = since - DAYS * 86400;
+  // Período anterior pra comparativo (mesma duração, imediatamente antes)
+  const sincePrev = since - rangeDays * 86400;
+  const untilPrev = since - 1;
 
   // IG orgânico = união das 2 tags + leads no pipeline Social Selling
   // (algumas pessoas marcam só com tag, outras só com pipeline)
@@ -51,20 +78,18 @@ export default async function SalesPage() {
   ] = await Promise.all([
     listPipelines().catch((e) => { kommoErr = String(e); return []; }),
     listUsers().catch(() => []),
-    listLeads({ tagId: KOMMO_TAGS.organico_insta, createdAfter: since, maxItems: 2000 })
+    listLeads({ tagId: KOMMO_TAGS.organico_insta, createdAfter: since, createdBefore: until, maxItems: 5000 })
       .catch((e) => { kommoErr = String(e); return []; }),
-    listLeads({ tagId: KOMMO_TAGS.social_selling, createdAfter: since, maxItems: 2000 })
+    listLeads({ tagId: KOMMO_TAGS.social_selling, createdAfter: since, createdBefore: until, maxItems: 5000 })
       .catch(() => []),
-    listLeads({ pipelineId: KOMMO_PIPELINES.social_selling, createdAfter: since, maxItems: 2000 })
+    listLeads({ pipelineId: KOMMO_PIPELINES.social_selling, createdAfter: since, createdBefore: until, maxItems: 5000 })
       .catch(() => []),
-    listLeads({ tagId: KOMMO_TAGS.organico_insta, createdAfter: sincePrev, maxItems: 2000 })
-      .catch(() => [])
-      .then((all) => all.filter((l) => l.created_at < since)),
-    listLeads({ tagId: KOMMO_TAGS.social_selling, createdAfter: sincePrev, maxItems: 2000 })
-      .catch(() => [])
-      .then((all) => all.filter((l) => l.created_at < since)),
-    listLeads({ createdAfter: since, maxItems: 1500 }).catch(() => []),
-    getAccountInsights(DAYS).catch((e) => { igErr = String(e); return undefined; }),
+    listLeads({ tagId: KOMMO_TAGS.organico_insta, createdAfter: sincePrev, createdBefore: untilPrev, maxItems: 5000 })
+      .catch(() => []),
+    listLeads({ tagId: KOMMO_TAGS.social_selling, createdAfter: sincePrev, createdBefore: untilPrev, maxItems: 5000 })
+      .catch(() => []),
+    listLeads({ createdAfter: since, createdBefore: until, maxItems: 3000 }).catch(() => []),
+    getAccountInsights(rangeDays).catch((e) => { igErr = String(e); return undefined; }),
     listMedia(60).catch(() => []),
   ]);
 
@@ -95,8 +120,8 @@ export default async function SalesPage() {
   // Sellers
   const sellers = statsBySeller(igOrganic, users);
 
-  // Timeline diária
-  const dailyTimeline = dailyLeadsTimeline(igOrganic, DAYS);
+  // Timeline diária — usa range dinâmico
+  const dailyTimeline = dailyLeadsTimelineRange(igOrganic, fromStr, toStr);
 
   // IG website clicks daily — vou aproximar usando totais (não temos por dia exato)
   const igClicksTotal = igInsights?.totals.website_clicks || 0;
@@ -106,12 +131,17 @@ export default async function SalesPage() {
   // Aproximação: usar daily posts series como proxy de "presença IG"
   const dailyPosts = buildDailyPostsSeries(
     (await Promise.all(
-      igMedia.map(async (m) => ({
-        media: m,
-        insights: await getMediaInsights(m.id, m.media_product_type === "REELS").catch(() => ({})),
-      })),
+      igMedia
+        .filter((m) => {
+          const ts = new Date(m.timestamp).getTime();
+          return ts >= fromDate.getTime() && ts <= toDate.getTime();
+        })
+        .map(async (m) => ({
+          media: m,
+          insights: await getMediaInsights(m.id, m.media_product_type === "REELS").catch(() => ({})),
+        })),
     )),
-    DAYS,
+    rangeDays,
   );
   const corr = pearson(
     dailyPosts.map((d) => d.posts),
@@ -141,12 +171,14 @@ export default async function SalesPage() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Vendas — Funil Orgânico Instagram</h1>
         <p className="text-muted-foreground mt-1">
-          IG profile → bio click → lead Kommo → venda · últimos {DAYS} dias
+          IG profile → bio click → lead Kommo → venda · {fromStr} → {toStr} ({rangeDays}d)
         </p>
         <p className="text-xs text-muted-foreground mt-1">
           Critério: leads com tag <strong>&quot;Orgânico Insta&quot;</strong> OU tag <strong>&quot;Social Selling&quot;</strong> OU pipeline Social Selling — união de todos os pipelines
         </p>
       </div>
+
+      <DateFilter initialFrom={fromStr} initialTo={toStr} />
 
       {(kommoErr || igErr) && (
         <Card className="border-destructive/40 bg-destructive/5">

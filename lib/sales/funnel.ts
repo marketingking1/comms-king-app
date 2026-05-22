@@ -165,6 +165,34 @@ export function statsBySeller(leads: KommoLead[], users: User[]): SellerStat[] {
 // DAILY SERIES
 // =========================================================
 
+export function dailyLeadsTimelineRange(
+  leads: KommoLead[],
+  fromISO: string,
+  toISO: string,
+): Array<{ date: string; total: number; won: number }> {
+  const from = new Date(fromISO + "T00:00:00Z");
+  const to = new Date(toISO + "T00:00:00Z");
+  const days = Math.max(
+    Math.floor((to.getTime() - from.getTime()) / (24 * 3600 * 1000)) + 1,
+    1,
+  );
+
+  const map = new Map<string, { total: number; won: number }>();
+  for (let i = 0; i < days; i++) {
+    const d = new Date(from);
+    d.setDate(d.getDate() + i);
+    map.set(d.toISOString().slice(0, 10), { total: 0, won: 0 });
+  }
+  for (const l of leads) {
+    const day = new Date(l.created_at * 1000).toISOString().slice(0, 10);
+    const cur = map.get(day);
+    if (!cur) continue;
+    cur.total += 1;
+    if (l.status_id === STATUS_WON) cur.won += 1;
+  }
+  return Array.from(map.entries()).map(([date, v]) => ({ date, ...v }));
+}
+
 export function dailyLeadsTimeline(leads: KommoLead[], days = 30): Array<{ date: string; total: number; won: number }> {
   const map = new Map<string, { total: number; won: number }>();
   const today = new Date();
