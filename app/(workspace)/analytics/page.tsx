@@ -25,8 +25,21 @@ import {
   recentVelocity,
   comparePerformance,
 } from "@/lib/instagram/analytics";
+import {
+  calculateWeeklyScore,
+  clusterByTheme,
+  correlateLagged,
+  buildDailyPostsSeries,
+} from "@/lib/instagram/analytics-advanced";
 import { AlertTriangle, TrendingUp, TrendingDown, Eye, Users, MousePointerClick, Heart } from "lucide-react";
 import { HypothesisPanel } from "./hypothesis-panel";
+import { ScoreHero } from "./score-hero";
+import { HookDna } from "./hook-dna";
+import { ThemeMatrix } from "./theme-matrix";
+import { BrandSearchBridge } from "./brand-search-bridge";
+import { BigIdeasLab } from "./big-ideas-lab";
+import { getBrandTrafficDaily } from "@/lib/ga4/brand-search";
+import { getPropertyId } from "@/lib/ga4/client";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +83,7 @@ export default async function AnalyticsPage() {
   const hashtagStats = statsByHashtag(currentPieces);
   const captionBuckets = statsByCaptionLength(currentPieces);
 
-  const topShare = top(currentPieces, shareRate, 5);
+  const topShare = top(currentPieces, shareRate, 10);
   const topSave = top(currentPieces, saveRate, 5);
   const topComment = top(currentPieces, commentRate, 5);
   const topWatch = top(
@@ -79,9 +92,47 @@ export default async function AnalyticsPage() {
     5,
   );
   const topEngagement = top(currentPieces, engagementRate, 5);
-  const bottomShare = bottom(currentPieces, shareRate, 5);
+  const bottomShare = bottom(currentPieces, shareRate, 10);
   const velocity = recentVelocity(allPieces);
   const wordLift = wordsTopVsBottom(topShare, bottomShare).slice(0, 15);
+
+  // Theme clusters
+  const themeClusters = clusterByTheme(currentPieces);
+
+  // Score semanal
+  const followerGrowth = insights?.daily.reduce((s, d) => s + d.follower_count, 0) || 0;
+  const score = calculateWeeklyScore(
+    currentPieces,
+    previousPieces,
+    followerGrowth,
+    0,
+    insights?.totals.profile_views || 0,
+    insights?.totals.website_clicks || 0,
+  );
+  const avgEng = currentPieces.length > 0
+    ? currentPieces.reduce((s, p) => s + engagementRate(p), 0) / currentPieces.length
+    : 0;
+  const dominantFormat = Array.from(formatStats.entries()).sort((a, b) => b[1].count - a[1].count)[0]?.[0] || "—";
+
+  // GA4 brand search bridge (se conectado)
+  let gaPosts: Array<{ date: string; value: number }> = [];
+  let gaSearches: Array<{ date: string; value: number }> = [];
+  let gaCorrelations: Array<{ lag: number; pearson: number; pairs: number }> = [];
+  try {
+    const propertyId = await getPropertyId();
+    if (propertyId) {
+      const brandTraffic = await getBrandTrafficDaily(DAYS);
+      const postsDaily = buildDailyPostsSeries(currentPieces, DAYS);
+      gaPosts = postsDaily.map((d) => ({ date: d.date, value: d.posts }));
+      gaSearches = brandTraffic.map((d) => ({ date: d.date, value: d.sessions }));
+      // Correlação lagged
+      const postsValues = postsDaily.map((d) => d.posts);
+      const searchValues = brandTraffic.map((d) => d.sessions);
+      gaCorrelations = correlateLagged(postsValues, searchValues, 4);
+    }
+  } catch {
+    // GA4 não conectado — ok, painel mostra mensagem
+  }
 
   // Contexto resumido pra agente
   const analyticsContext = buildContext({
@@ -120,6 +171,24 @@ export default async function AnalyticsPage() {
         </Card>
       )}
 
+      {/* HERO + SCORE + NARRATIVA */}
+      {accountInfo && (
+        <ScoreHero
+          username={accountInfo.username}
+          followers={accountInfo.followers_count}
+          score={score}
+          reach={compare.current.reach}
+          reachDelta={compare.delta.reach}
+          avgEng={avgEng}
+          pieces={currentPieces.length}
+          dominantFormat={dominantFormat}
+          profileCTR={
+            (insights?.totals.website_clicks || 0) /
+            Math.max(insights?.totals.profile_views || 1, 1)
+          }
+        />
+      )}
+
       {/* HEADER conta */}
       {accountInfo && (
         <Card>
@@ -130,11 +199,11 @@ export default async function AnalyticsPage() {
                 <img
                   src={accountInfo.profile_picture_url}
                   alt={accountInfo.username}
-                  className="h-16 w-16 rounded-full"
+                  className="h-12 w-12 rounded-full"
                 />
               )}
               <div>
-                <CardTitle className="text-xl">@{accountInfo.username}</CardTitle>
+                <CardTitle className="text-lg">@{accountInfo.username}</CardTitle>
                 <CardDescription>
                   {accountInfo.followers_count.toLocaleString("pt-BR")} seguidores · {accountInfo.media_count} posts totais · {currentPieces.length} peças nos últimos {DAYS}d
                 </CardDescription>
@@ -371,8 +440,77 @@ export default async function AnalyticsPage() {
         </Card>
       )}
 
+      {/* ============ NOVAS SEÇÕES SOFISTICADAS ============ */}
+
+      {/* Format × Theme Matrix */}
+      <ThemeMatrix
+        clusters={themeClusters.map((c) => ({
+          label: c.label,
+          count: c.pieces.length,
+          avgReach: c.avgReach,
+          avgSaveRate: c.avgSaveRate,
+          avgShareRate: c.avgShareRate,
+          avgEngagementRate: c.avgEngagementRate,
+        }))}
+      />
+
+      {/* Hook DNA decomposer */}
+      <HookDna
+        topPieces={topShare.map((p) => ({
+          id: p.media.id,
+          caption: p.media.caption || "",
+          permalink: p.media.permalink,
+          reach: p.insights.reach || 0,
+          share_rate: shareRate(p),
+          format: p.media.media_product_type || p.media.media_type,
+        }))}
+        bottomPieces={bottomShare.map((p) => ({
+          id: p.media.id,
+          caption: p.media.caption || "",
+          permalink: p.media.permalink,
+          reach: p.insights.reach || 0,
+          share_rate: shareRate(p),
+          format: p.media.media_product_type || p.media.media_type,
+        }))}
+      />
+
+      {/* Brand search bridge */}
+      <BrandSearchBridge
+        posts={gaPosts}
+        searches={gaSearches}
+        correlations={gaCorrelations}
+      />
+
       {/* Hipóteses via agente */}
       <HypothesisPanel analyticsContext={analyticsContext} />
+
+      {/* Big Ideas Lab — million-strategist */}
+      <BigIdeasLab
+        context={{
+          score: score.total,
+          delta: score.delta,
+          topHooks: topShare.slice(0, 5).map((p) =>
+            `(reach ${p.insights.reach}, share ${(shareRate(p) * 100).toFixed(2)}%) "${(p.media.caption || "").slice(0, 150)}"`
+          ).join("\n"),
+          topClusters: themeClusters.slice(0, 3).map((c) =>
+            `${c.label}: ${c.pieces.length} peças, avg reach ${Math.round(c.avgReach)}, save ${(c.avgSaveRate * 100).toFixed(2)}%`
+          ).join("\n"),
+          saturatedClusters: themeClusters.filter((c) => c.pieces.length >= 3 && c.avgEngagementRate < avgEng * 0.7).slice(0, 3).map((c) =>
+            `${c.label}: ${c.pieces.length} peças, eng abaixo da média`
+          ).join("\n"),
+          goldmine: themeClusters.filter((c) => c.avgReach > 800 && c.avgSaveRate > 0.005).slice(0, 3).map((c) =>
+            `${c.label}: reach ${Math.round(c.avgReach)}, save ${(c.avgSaveRate * 100).toFixed(2)}%`
+          ).join("\n") || "—",
+          brandSearchLift: gaCorrelations.length > 0
+            ? gaCorrelations.map((c) => `lag ${c.lag}d: r=${c.pearson.toFixed(2)}`).join(", ")
+            : "GA4 não conectado ou sem dados suficientes",
+          anomalies: [
+            velocity.length > 0 ? `Velocity 72h: ${velocity.length} peças acelerando` : null,
+            topShare[0] ? `Top share rate: ${(shareRate(topShare[0]) * 100).toFixed(2)}% — "${(topShare[0].media.caption || "").slice(0, 80)}"` : null,
+            bottomShare[0] ? `Bottom share rate: ${(shareRate(bottomShare[0]) * 100).toFixed(2)}%` : null,
+          ].filter(Boolean).join("\n"),
+        }}
+      />
     </div>
   );
 }
