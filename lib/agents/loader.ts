@@ -55,8 +55,11 @@ async function loadSkillsInline(skills: string[]): Promise<string> {
     try {
       const content = await fs.readFile(skillFile, 'utf-8');
       const parsed = matter(content);
+      const references = await loadSkillReferences(skill);
       parts.push(
-        `## SKILL: ${skill}\n_${parsed.data.description ?? ''}_\n\n${parsed.content.trim()}`,
+        `## SKILL: ${skill}\n_${parsed.data.description ?? ''}_\n\n${parsed.content.trim()}${
+          references ? `\n\n### REFERÊNCIAS — ${skill}\n\n${references}` : ''
+        }`,
       );
     } catch {
       // skill ausente — log mas não bloqueia
@@ -64,6 +67,34 @@ async function loadSkillsInline(skills: string[]): Promise<string> {
     }
   }
   return parts.join('\n\n---\n\n');
+}
+
+/**
+ * Carrega TODOS os .md em `skills/<skill>/references/` e devolve concatenado.
+ * Inclui banco de verbatims, headlines validadas, históricos de performance, etc.
+ * Sem isso, agentes ficavam tateando ângulo em vez de cravar a partir do dado real.
+ */
+async function loadSkillReferences(skill: string): Promise<string> {
+  const refDir = path.join(SKILLS_DIR, skill, 'references');
+  let files: string[];
+  try {
+    files = await fs.readdir(refDir);
+  } catch {
+    return ''; // sem references/ é caso comum, não erro
+  }
+  const mdFiles = files.filter((f) => f.endsWith('.md')).sort();
+  if (mdFiles.length === 0) return '';
+
+  const chunks: string[] = [];
+  for (const file of mdFiles) {
+    try {
+      const content = await fs.readFile(path.join(refDir, file), 'utf-8');
+      chunks.push(`#### ${file}\n\n${content.trim()}`);
+    } catch {
+      // ignore
+    }
+  }
+  return chunks.join('\n\n');
 }
 
 export async function listAgents(): Promise<AgentName[]> {
