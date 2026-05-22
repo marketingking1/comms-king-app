@@ -212,27 +212,36 @@ function Bubble({
 }) {
   const isUser = role === "user";
   return (
-    <div className="flex gap-3">
+    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
       <div
-        className={`h-7 w-7 rounded-full flex items-center justify-center text-xs flex-shrink-0 mt-1 ${
+        className={`h-8 w-8 rounded-xl flex items-center justify-center text-xs flex-shrink-0 mt-0.5 shadow-sm ${
           isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-foreground"
+            ? "bg-brand-blue text-white"
+            : "bg-gradient-to-br from-brand-coral to-brand-coral/70 text-white"
         }`}
         aria-hidden="true"
       >
         {isUser ? <User className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+      <div className={`flex-1 min-w-0 ${isUser ? "text-right" : ""}`}>
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground mb-1.5">
           {isUser ? "Você" : "Agente"}
           {streaming && (
-            <span className="ml-2 normal-case tracking-normal">digitando...</span>
+            <span className="ml-2 normal-case tracking-normal font-normal inline-flex items-center gap-1">
+              <span className="h-1 w-1 rounded-full bg-brand-coral animate-pulse" />
+              digitando...
+            </span>
           )}
         </p>
-        <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-foreground/90 break-words">
-          {content}
-        </pre>
+        <div
+          className={`inline-block max-w-full text-left rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+            isUser
+              ? "bg-brand-blue/8 text-foreground rounded-tr-md"
+              : "bg-card border border-border/60 text-foreground/90 rounded-tl-md shadow-sm"
+          }`}
+        >
+          <pre className="whitespace-pre-wrap font-sans break-words">{content}</pre>
+        </div>
       </div>
     </div>
   );
