@@ -26,9 +26,13 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
-  const isApiAgent = request.nextUrl.pathname.startsWith('/api/agents');
+  const isPublicApi =
+    request.nextUrl.pathname.startsWith('/api/agents') ||
+    request.nextUrl.pathname.startsWith('/api/trends') ||
+    request.nextUrl.pathname.startsWith('/api/analytics') ||
+    request.nextUrl.pathname.startsWith('/api/ga4');
 
-  if (!user && !isAuthPage && !isApiAgent && request.nextUrl.pathname !== '/') {
+  if (!user && !isAuthPage && !isPublicApi && request.nextUrl.pathname !== '/') {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
