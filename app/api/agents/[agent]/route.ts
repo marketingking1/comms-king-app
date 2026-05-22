@@ -81,53 +81,31 @@ export async function POST(
       relatedEntityId: body.relatedEntityId,
     });
 
-    // textStream LANÇA quando o provider erra (network, rate limit, etc).
-    // fullStream engolia o erro silenciosamente em parts type:'error' que
-    // o Anthropic provider às vezes nem emite — daí o "stream vazio".
-    const encoder = new TextEncoder();
+    // result.text é PromiseLike<string>. LANÇA se houver erro de provider
+    // (rate limit, context overflow, model not found, etc).
+    // Sem streaming, mas com erro reportado de verdade.
+    const text = await result.text;
 
-    const textStream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        try {
-          for await (const delta of result.textStream) {
-            if (delta) controller.enqueue(encoder.encode(delta));
-          }
-          controller.close();
-        } catch (e) {
-          const err = e as Error & { statusCode?: number; cause?: unknown; responseBody?: string };
-          const msg = err.message || String(err);
-          const detail = err.responseBody || (err.cause ? String(err.cause) : '') || '';
-          console.error('[api/agents] textStream threw', {
-            agent,
-            message: msg,
-            statusCode: err.statusCode,
-            cause: err.cause,
-            responseBody: err.responseBody,
-            stack: err.stack,
-          });
-          try {
-            controller.enqueue(
-              encoder.encode(
-                `\n\n[STREAM ERROR] ${msg.slice(0, 400)}${detail ? ` :: ${String(detail).slice(0, 300)}` : ''}`,
-              ),
-            );
-          } catch {
-            // controller pode já estar fechado
-          }
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(textStream, {
+    return new Response(text, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'X-Agent': agent,
       },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error('[api/agents]', { agent, error: msg, stack: e instanceof Error ? e.stack : undefined });
-    return Response.json({ error: `agent error: ${msg.slice(0, 300)}` }, { status: 500 });
+    const err = e as Error & { statusCode?: number; cause?: unknown; responseBody?: string };
+    const msg = err.message || String(err);
+    const cause = err.cause ? String(err.cause).slice(0, 300) : '';
+    const responseBody = err.responseBody ? String(err.responseBody).slice(0, 300) : '';
+    console.error('[api/agents]', {
+      agent,
+      message: msg,
+      statusCode: err.statusCode,
+      cause: err.cause,
+      responseBody: err.responseBody,
+      stack: err.stack,
+    });
+    const detail = [msg, cause, responseBody].filter(Boolean).join(' :: ');
+    return Response.json({ error: `agent error: ${detail.slice(0, 600)}` }, { status: 500 });
   }
 }
