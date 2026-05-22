@@ -15,6 +15,7 @@ import {
   BarChart3,
   LineChart,
   Flame,
+  DollarSign,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const NAV = [
   { href: "/community", label: "Comunidade", icon: Users },
   { href: "/analytics", label: "Analytics IG", icon: BarChart3 },
   { href: "/ga4", label: "Google Analytics", icon: LineChart },
+  { href: "/sales", label: "Vendas", icon: DollarSign },
 ];
 
 export function Sidebar() {
