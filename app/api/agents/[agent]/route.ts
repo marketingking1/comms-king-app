@@ -81,13 +81,38 @@ export async function POST(
       relatedEntityId: body.relatedEntityId,
     });
 
-    // await result.text consome o stream e LANÇA se houver erro.
-    // Sai do streaming UX mas dá visibilidade do erro do provider.
+    // Consome o stream silenciosamente primeiro (sem throw em onError).
+    // Depois lê finishReason/warnings pra diagnóstico se text vier vazio.
+    await result.consumeStream({
+      onError: (error) => {
+        console.error('[api/agents] consumeStream onError', { agent, error });
+      },
+    });
+
     const text = await result.text;
+    const finishReason = await result.finishReason;
+    const warnings = await result.warnings;
+    const usage = await result.usage;
+
     if (!text || text.trim().length === 0) {
-      console.error('[api/agents] empty text', { agent });
+      console.error('[api/agents] empty output', {
+        agent,
+        finishReason,
+        warnings,
+        usage,
+      });
+      const warnDetail = warnings && warnings.length > 0
+        ? warnings.map((w) => {
+            if (w.type === 'other') return w.message;
+            return `${w.type}:${w.feature}${w.details ? `(${w.details})` : ''}`;
+          }).join('; ')
+        : '';
       return Response.json(
-        { error: 'agent error: provider returned empty response' },
+        {
+          error: `agent error: empty output (finishReason=${finishReason}${
+            warnDetail ? `; warnings=${warnDetail}` : ''
+          })`,
+        },
         { status: 502 },
       );
     }

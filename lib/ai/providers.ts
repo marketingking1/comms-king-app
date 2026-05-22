@@ -38,8 +38,8 @@ const ROUTING: Record<AgentName, ProviderRoute> = {
   },
   'comms-storyteller-viral': {
     provider: 'anthropic',
-    model: 'claude-sonnet-4-6',
-    maxTokens: 6000,
+    model: 'claude-opus-4-7',
+    maxTokens: 8000,
   },
   'comms-zeitgeist-hunter': {
     provider: 'anthropic',
