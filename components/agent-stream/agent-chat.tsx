@@ -81,6 +81,13 @@ export function AgentChat({
         acc += decoder.decode(value, { stream: true });
         setPendingAssistant(acc);
       }
+      const streamErr = acc.match(/\[STREAM (?:ERROR|EXCEPTION)\]\s*(.+)$/s);
+      if (streamErr) {
+        toast.error(`Provider erro: ${streamErr[1].slice(0, 200)}`);
+        setMessages(history);
+        setPendingAssistant("");
+        return;
+      }
       const finalHistory: ChatMessage[] = [
         ...history,
         { role: "assistant", content: acc },

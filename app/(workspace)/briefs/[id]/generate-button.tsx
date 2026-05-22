@@ -61,6 +61,11 @@ export function GenerateBigIdeasButton({
         setOutput(acc);
       }
 
+      const streamErr = acc.match(/\[STREAM (?:ERROR|EXCEPTION)\]\s*(.+)$/s);
+      if (streamErr) {
+        throw new Error(`Provider erro: ${streamErr[1].slice(0, 400)}`);
+      }
+
       // Parse: tentar extrair Big Ideas individuais e persistir
       const ideas = extractBigIdeas(acc);
       if (ideas.length > 0) {

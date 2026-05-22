@@ -104,6 +104,10 @@ export function IdeaActions({
       if (!acc.trim()) {
         throw new Error("Agente respondeu vazio (provavelmente erro mid-stream do provider). Veja os logs da Vercel.");
       }
+      const streamErrMatch = acc.match(/\[STREAM (?:ERROR|EXCEPTION)\]\s*(.+)$/s);
+      if (streamErrMatch) {
+        throw new Error(`Provider erro: ${streamErrMatch[1].slice(0, 400)}`);
+      }
 
       // Salva concept
       const modelMatch = acc.match(/Framework:\s*\*?\*?\s*([A-Za-z\-\s]+)/);

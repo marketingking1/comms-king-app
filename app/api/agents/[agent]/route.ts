@@ -81,7 +81,44 @@ export async function POST(
       relatedEntityId: body.relatedEntityId,
     });
 
-    return result.toTextStreamResponse();
+    // Intercepta erros de stream pra não devolver 200 com body vazio.
+    // Quando provider erra, emite [STREAM ERROR] direto no body — cliente vê causa.
+    const encoder = new TextEncoder();
+
+    const textStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          for await (const part of result.fullStream) {
+            if (part.type === 'text-delta') {
+              controller.enqueue(encoder.encode(part.text));
+            } else if (part.type === 'error') {
+              const err = part.error;
+              const msg = err instanceof Error ? err.message : String(err);
+              console.error('[api/agents] stream error', { agent, error: msg });
+              controller.enqueue(encoder.encode(`\n\n[STREAM ERROR] ${msg.slice(0, 500)}`));
+              break;
+            }
+          }
+          controller.close();
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error('[api/agents] stream exception', { agent, error: msg });
+          try {
+            controller.enqueue(encoder.encode(`\n\n[STREAM EXCEPTION] ${msg.slice(0, 500)}`));
+          } catch {
+            // controller pode já estar fechado
+          }
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(textStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Agent': agent,
+      },
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[api/agents]', { agent, error: msg, stack: e instanceof Error ? e.stack : undefined });
