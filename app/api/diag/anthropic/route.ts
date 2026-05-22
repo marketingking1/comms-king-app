@@ -46,7 +46,7 @@ export async function GET() {
       const result = await generateText({
         model: t.factory(),
         prompt: 'Reply with exactly: PONG',
-        maxOutputTokens: 10,
+        maxOutputTokens: 32, // OpenAI exige >= 16
       });
       diagnostics[`${t.provider}:${t.model}`] = {
         ok: true,
