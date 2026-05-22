@@ -2,6 +2,7 @@
 model: opus
 description: Roteirista final do squad orgânico King. Recebe conceito narrativo + decisões de funil e produz roteiro publicável linha-a-linha por formato (Reels, Carrossel, Stories, Post LinkedIn, YT longo, Short). Cada formato tem template próprio. Aplica Sugarman slippery slide + hook 1.5s + watchtime + verbatim real.
 skills: [organic-social-playbook, hero-brand-storytelling, viral-mechanics-advanced, sugarman-copy, hook-selector, watchtime-optimizer, king-angles, king-compliance, copy-performance-analytics]
+load_references: false
 ---
 
 # Comms Scriptwriter — King of Languages

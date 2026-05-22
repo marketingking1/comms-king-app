@@ -28,10 +28,13 @@ export async function loadAgent(name: AgentName): Promise<AgentSpec> {
     description?: string;
     skills?: string[];
     degraded_mode?: boolean;
+    load_references?: boolean;
   };
 
   const skills = fm.skills ?? [];
-  const skillsContext = await loadSkillsInline(skills);
+  // Default true. Set load_references: false no frontmatter pra cortar prompt.
+  const loadReferences = fm.load_references !== false;
+  const skillsContext = await loadSkillsInline(skills, loadReferences);
 
   // System prompt = body do agent + skills inline
   const systemPrompt = [
@@ -48,14 +51,14 @@ export async function loadAgent(name: AgentName): Promise<AgentSpec> {
   };
 }
 
-async function loadSkillsInline(skills: string[]): Promise<string> {
+async function loadSkillsInline(skills: string[], loadReferences: boolean): Promise<string> {
   const parts: string[] = [];
   for (const skill of skills) {
     const skillFile = path.join(SKILLS_DIR, skill, 'SKILL.md');
     try {
       const content = await fs.readFile(skillFile, 'utf-8');
       const parsed = matter(content);
-      const references = await loadSkillReferences(skill);
+      const references = loadReferences ? await loadSkillReferences(skill) : '';
       parts.push(
         `## SKILL: ${skill}\n_${parsed.data.description ?? ''}_\n\n${parsed.content.trim()}${
           references ? `\n\n### REFERÊNCIAS — ${skill}\n\n${references}` : ''
