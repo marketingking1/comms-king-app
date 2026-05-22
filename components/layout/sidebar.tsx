@@ -14,6 +14,7 @@ import {
   Users,
   BarChart3,
   LineChart,
+  Flame,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const NAV = [
   { href: "/briefs", label: "Briefs", icon: FileText },
   { href: "/ideas", label: "Big Ideas", icon: Lightbulb },
   { href: "/zeitgeist", label: "Zeitgeist", icon: Sparkles },
+  { href: "/trends", label: "Trends do dia", icon: Flame },
   { href: "/concepts", label: "Conceitos", icon: Film },
   { href: "/scripts", label: "Roteiros", icon: Wand2 },
   { href: "/calendar", label: "Calendário", icon: CalendarDays },
