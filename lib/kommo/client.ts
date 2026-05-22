@@ -80,6 +80,9 @@ export type KommoLead = {
     field_name: string;
     values: Array<{ value: string | number }>;
   }> | null;
+  _embedded?: {
+    tags?: Array<{ id: number; name: string; color?: string }>;
+  };
 };
 
 export type Pipeline = {
@@ -113,23 +116,30 @@ export async function listUsers(): Promise<User[]> {
  * Lista leads com paginação. Retorna até `maxItems`.
  * Filtros úteis: createdAfter, pipelineId, statusId.
  */
+/**
+ * Lista leads. IMPORTANTE: filter[tags] é silenciosamente ignorado pela API Kommo v4.
+ * Use `withTags: true` pra trazer _embedded.tags e filtrar client-side via filterTagIds.
+ */
 export async function listLeads(opts: {
   createdAfter?: number;
   createdBefore?: number;
   pipelineId?: number;
   statusId?: number;
-  tagId?: number;          // filtra por tag id — pega todos pipelines
+  filterTagIds?: number[];     // filtra CLIENT-SIDE por OR — pelo menos 1 tag id presente
+  withTags?: boolean;          // pede _embedded.tags na resposta
   maxItems?: number;
 } = {}): Promise<KommoLead[]> {
   const max = opts.maxItems ?? 1000;
   const all: KommoLead[] = [];
   let page = 1;
   const limit = 250;
+  const needsTags = opts.withTags || (opts.filterTagIds && opts.filterTagIds.length > 0);
 
   while (all.length < max) {
     const params = new URLSearchParams();
     params.set("limit", String(limit));
     params.set("page", String(page));
+    if (needsTags) params.set("with", "tags");
     if (opts.createdAfter) {
       params.set("filter[created_at][from]", String(opts.createdAfter));
     }
@@ -138,9 +148,6 @@ export async function listLeads(opts: {
     }
     if (opts.pipelineId) {
       params.set("filter[pipeline_id]", String(opts.pipelineId));
-    }
-    if (opts.tagId) {
-      params.set("filter[tags][0][id]", String(opts.tagId));
     }
     if (opts.statusId) {
       params.set("filter[statuses][0][pipeline_id]", String(opts.pipelineId ?? KOMMO_PIPELINES.funil_vendas));
@@ -163,5 +170,16 @@ export async function listLeads(opts: {
     }
   }
 
-  return all.slice(0, max);
+  let result = all.slice(0, max);
+
+  // Filtro client-side por tags (Kommo v4 ignora filter[tags] no server)
+  if (opts.filterTagIds && opts.filterTagIds.length > 0) {
+    const tagSet = new Set(opts.filterTagIds);
+    result = result.filter((l) => {
+      const tags = l._embedded?.tags || [];
+      return tags.some((t) => tagSet.has(t.id));
+    });
+  }
+
+  return result;
 }
