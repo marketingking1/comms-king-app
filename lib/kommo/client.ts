@@ -49,6 +49,14 @@ export const KOMMO_CUSTOM_FIELDS = {
   referrer: 1001938,
 };
 
+// IDs canônicos de tags
+export const KOMMO_TAGS = {
+  organico_insta: 129013,    // "Orgânico Insta" — pega de TODOS os pipelines
+  lead_organico: 113025,
+  insta: 127039,
+  social_selling: 127835,
+};
+
 // IDs canônicos de status — won = 142 / lost = 143 em todos pipelines
 export const STATUS_WON = 142;
 export const STATUS_LOST = 143;
@@ -109,8 +117,8 @@ export async function listLeads(opts: {
   createdAfter?: number;
   pipelineId?: number;
   statusId?: number;
+  tagId?: number;          // filtra por tag id — pega todos pipelines
   maxItems?: number;
-  withFields?: boolean;
 } = {}): Promise<KommoLead[]> {
   const max = opts.maxItems ?? 1000;
   const all: KommoLead[] = [];
@@ -126,6 +134,9 @@ export async function listLeads(opts: {
     }
     if (opts.pipelineId) {
       params.set("filter[pipeline_id]", String(opts.pipelineId));
+    }
+    if (opts.tagId) {
+      params.set("filter[tags][0][id]", String(opts.tagId));
     }
     if (opts.statusId) {
       params.set("filter[statuses][0][pipeline_id]", String(opts.pipelineId ?? KOMMO_PIPELINES.funil_vendas));

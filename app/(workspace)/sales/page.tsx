@@ -5,6 +5,7 @@ import {
   listPipelines,
   listUsers,
   KOMMO_PIPELINES,
+  KOMMO_TAGS,
   STATUS_WON,
   STATUS_LOST,
 } from "@/lib/kommo/client";
@@ -34,31 +35,50 @@ export default async function SalesPage() {
   const since = Math.floor(Date.now() / 1000) - DAYS * 86400;
   const sincePrev = since - DAYS * 86400;
 
+  // IG orgânico = união das 2 tags + leads no pipeline Social Selling
+  // (algumas pessoas marcam só com tag, outras só com pipeline)
   const [
     pipelines,
     users,
+    leadsTagOrganico,
+    leadsTagSocialSelling,
+    leadsPipelineSocialSelling,
+    leadsTagOrganicoPrev,
+    leadsTagSocialSellingPrev,
     leadsCurrent,
-    leadsPrev,
     igInsights,
     igMedia,
   ] = await Promise.all([
     listPipelines().catch((e) => { kommoErr = String(e); return []; }),
     listUsers().catch(() => []),
-    listLeads({ createdAfter: since, maxItems: 1500 }).catch((e) => { kommoErr = String(e); return []; }),
-    listLeads({ createdAfter: sincePrev, maxItems: 1500 }).catch(() => []).then((all) =>
-      all.filter((l) => l.created_at < since),
-    ),
+    listLeads({ tagId: KOMMO_TAGS.organico_insta, createdAfter: since, maxItems: 2000 })
+      .catch((e) => { kommoErr = String(e); return []; }),
+    listLeads({ tagId: KOMMO_TAGS.social_selling, createdAfter: since, maxItems: 2000 })
+      .catch(() => []),
+    listLeads({ pipelineId: KOMMO_PIPELINES.social_selling, createdAfter: since, maxItems: 2000 })
+      .catch(() => []),
+    listLeads({ tagId: KOMMO_TAGS.organico_insta, createdAfter: sincePrev, maxItems: 2000 })
+      .catch(() => [])
+      .then((all) => all.filter((l) => l.created_at < since)),
+    listLeads({ tagId: KOMMO_TAGS.social_selling, createdAfter: sincePrev, maxItems: 2000 })
+      .catch(() => [])
+      .then((all) => all.filter((l) => l.created_at < since)),
+    listLeads({ createdAfter: since, maxItems: 1500 }).catch(() => []),
     getAccountInsights(DAYS).catch((e) => { igErr = String(e); return undefined; }),
     listMedia(60).catch(() => []),
   ]);
 
-  // Classificar todos
+  // Union dedup por lead ID
+  function unionByLeadId<T extends { id: number }>(...arrays: T[][]): T[] {
+    const map = new Map<number, T>();
+    for (const arr of arrays) for (const l of arr) map.set(l.id, l);
+    return Array.from(map.values());
+  }
+  const igOrganic = unionByLeadId(leadsTagOrganico, leadsTagSocialSelling, leadsPipelineSocialSelling);
+  const igOrganicPrev = unionByLeadId(leadsTagOrganicoPrev, leadsTagSocialSellingPrev);
+
+  // Source breakdown geral (heurístico)
   const classified = leadsCurrent.map((l) => ({ lead: l, source: classifyLeadSource(l) }));
-  const igOrganic = classified.filter((c) => c.source === "instagram_organic").map((c) => c.lead);
-  const igOrganicPrev = leadsPrev
-    .map((l) => ({ lead: l, source: classifyLeadSource(l) }))
-    .filter((c) => c.source === "instagram_organic")
-    .map((c) => c.lead);
 
   // Stats principais
   const stats = calcFunnelStats(igOrganic);
@@ -122,6 +142,9 @@ export default async function SalesPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Vendas — Funil Orgânico Instagram</h1>
         <p className="text-muted-foreground mt-1">
           IG profile → bio click → lead Kommo → venda · últimos {DAYS} dias
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Critério: leads com tag <strong>&quot;Orgânico Insta&quot;</strong> OU tag <strong>&quot;Social Selling&quot;</strong> OU pipeline Social Selling — união de todos os pipelines
         </p>
       </div>
 
