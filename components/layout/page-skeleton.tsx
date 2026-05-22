@@ -87,3 +87,45 @@ export function PageSkeleton({
     </div>
   );
 }
+
+export function ListPageSkeleton({ items = 6 }: { items?: number }) {
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <PageHeaderSkeleton />
+      <div className="space-y-2">
+        {Array.from({ length: items }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+                <Skeleton className="h-6 w-20" />
+              </div>
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function FormPageSkeleton() {
+  return (
+    <div className="p-8 max-w-3xl mx-auto space-y-6">
+      <PageHeaderSkeleton />
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-10 w-32" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

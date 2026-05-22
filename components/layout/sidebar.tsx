@@ -110,7 +110,9 @@ function SidebarContent({
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={true}
                     onClick={onItemClick}
+                    onMouseEnter={() => router.prefetch(item.href)}
                     aria-current={active ? "page" : undefined}
                     title={collapsed ? item.label : undefined}
                     className={cn(
