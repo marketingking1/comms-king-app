@@ -48,14 +48,10 @@ export async function runAgentStreaming(input: RunAgentInput) {
     messages: conversation,
     maxOutputTokens: route.maxTokens,
     onError: ({ error }) => {
-      const e = error as Error | { message?: string; statusCode?: number; cause?: unknown };
       console.error('[runner] streamText error', {
         agent: input.agent,
         model: route.model,
-        message: e instanceof Error ? e.message : (e as { message?: string }).message,
-        stack: e instanceof Error ? e.stack : undefined,
-        statusCode: (e as { statusCode?: number }).statusCode,
-        cause: (e as { cause?: unknown }).cause,
+        error: error instanceof Error ? error.message : String(error),
         systemChars,
         userChars,
       });

@@ -92,20 +92,18 @@ export async function POST(
         'X-Agent': agent,
       },
     });
-  } catch (e) {
-    const err = e as Error & { statusCode?: number; cause?: unknown; responseBody?: string };
-    const msg = err.message || String(err);
-    const cause = err.cause ? String(err.cause).slice(0, 300) : '';
-    const responseBody = err.responseBody ? String(err.responseBody).slice(0, 300) : '';
-    console.error('[api/agents]', {
-      agent,
-      message: msg,
-      statusCode: err.statusCode,
-      cause: err.cause,
-      responseBody: err.responseBody,
-      stack: err.stack,
-    });
-    const detail = [msg, cause, responseBody].filter(Boolean).join(' :: ');
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Pega cause/statusCode/responseBody se existirem (Anthropic SDK error shape)
+    const extra: Record<string, unknown> = {};
+    if (e && typeof e === 'object') {
+      const obj = e as Record<string, unknown>;
+      if (obj.statusCode) extra.statusCode = obj.statusCode;
+      if (obj.cause) extra.cause = String(obj.cause).slice(0, 300);
+      if (obj.responseBody) extra.responseBody = String(obj.responseBody).slice(0, 300);
+    }
+    console.error('[api/agents]', { agent, message: msg, ...extra });
+    const detail = [msg, extra.cause, extra.responseBody].filter(Boolean).join(' :: ');
     return Response.json({ error: `agent error: ${detail.slice(0, 600)}` }, { status: 500 });
   }
 }
