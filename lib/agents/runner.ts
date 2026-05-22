@@ -46,6 +46,7 @@ export async function runAgentStreaming(input: RunAgentInput) {
     model,
     system: spec.systemPrompt,
     messages: conversation,
+    maxOutputTokens: route.maxTokens,
     onError: ({ error }) => {
       console.error('[runner] streamText error', { agent: input.agent, error });
     },
