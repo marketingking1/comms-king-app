@@ -81,30 +81,36 @@ export async function POST(
       relatedEntityId: body.relatedEntityId,
     });
 
-    // Intercepta erros de stream pra não devolver 200 com body vazio.
-    // Quando provider erra, emite [STREAM ERROR] direto no body — cliente vê causa.
+    // textStream LANÇA quando o provider erra (network, rate limit, etc).
+    // fullStream engolia o erro silenciosamente em parts type:'error' que
+    // o Anthropic provider às vezes nem emite — daí o "stream vazio".
     const encoder = new TextEncoder();
 
     const textStream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
-          for await (const part of result.fullStream) {
-            if (part.type === 'text-delta') {
-              controller.enqueue(encoder.encode(part.text));
-            } else if (part.type === 'error') {
-              const err = part.error;
-              const msg = err instanceof Error ? err.message : String(err);
-              console.error('[api/agents] stream error', { agent, error: msg });
-              controller.enqueue(encoder.encode(`\n\n[STREAM ERROR] ${msg.slice(0, 500)}`));
-              break;
-            }
+          for await (const delta of result.textStream) {
+            if (delta) controller.enqueue(encoder.encode(delta));
           }
           controller.close();
         } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          console.error('[api/agents] stream exception', { agent, error: msg });
+          const err = e as Error & { statusCode?: number; cause?: unknown; responseBody?: string };
+          const msg = err.message || String(err);
+          const detail = err.responseBody || (err.cause ? String(err.cause) : '') || '';
+          console.error('[api/agents] textStream threw', {
+            agent,
+            message: msg,
+            statusCode: err.statusCode,
+            cause: err.cause,
+            responseBody: err.responseBody,
+            stack: err.stack,
+          });
           try {
-            controller.enqueue(encoder.encode(`\n\n[STREAM EXCEPTION] ${msg.slice(0, 500)}`));
+            controller.enqueue(
+              encoder.encode(
+                `\n\n[STREAM ERROR] ${msg.slice(0, 400)}${detail ? ` :: ${String(detail).slice(0, 300)}` : ''}`,
+              ),
+            );
           } catch {
             // controller pode já estar fechado
           }
