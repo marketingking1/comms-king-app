@@ -81,7 +81,19 @@ export async function POST(
       relatedEntityId: body.relatedEntityId,
     });
 
-    return result.toTextStreamResponse();
+    // await result.text consome o stream e LANÇA se houver erro.
+    // Sai do streaming UX mas dá visibilidade do erro do provider.
+    const text = await result.text;
+    if (!text || text.trim().length === 0) {
+      console.error('[api/agents] empty text', { agent });
+      return Response.json(
+        { error: 'agent error: provider returned empty response' },
+        { status: 502 },
+      );
+    }
+    return new Response(text, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[api/agents]', { agent, error: msg, stack: e instanceof Error ? e.stack : undefined });
