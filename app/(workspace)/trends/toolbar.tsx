@@ -18,7 +18,7 @@ export function TrendsToolbar({ lastFetched }: { lastFetched?: string }) {
   async function refresh(sources: string[]) {
     setRunning(true);
     const label = sources.includes("tiktok") || sources.includes("reddit") ? "completo (2-3min)" : "rápido (~10s)";
-    toast.info(`Buscando trends ${label}...`);
+    const toastId = toast.loading(`Buscando trends ${label}...`, { duration: Infinity });
     try {
       const res = await fetch("/api/trends/refresh", {
         method: "POST",
@@ -26,14 +26,33 @@ export function TrendsToolbar({ lastFetched }: { lastFetched?: string }) {
         body: JSON.stringify({ sources }),
       });
       if (!res.ok) {
-        const e = await res.json().catch(() => ({ error: "Erro" }));
-        throw new Error(e.error || "Erro");
+        const body = await res.json().catch(() => null);
+        const msg = body?.error || body?.message || `HTTP ${res.status}`;
+        // Se tem summary, mostra quais sources falharam
+        if (body?.summary) {
+          const failed = Object.entries(body.summary as Record<string, { count: number; error?: string }>)
+            .filter(([, v]) => v.error)
+            .map(([k, v]) => `${k}: ${v.error?.slice(0, 80)}`)
+            .join(" · ");
+          throw new Error(`${msg}${failed ? ` — ${failed}` : ""}`);
+        }
+        throw new Error(msg);
       }
       const data = await res.json();
-      toast.success(`${data.total} trends · ${Math.round(data.duration_ms / 1000)}s`);
+      const partialFails = data.summary
+        ? Object.entries(data.summary as Record<string, { count: number; error?: string }>)
+            .filter(([, v]) => v.error)
+            .map(([k]) => k)
+        : [];
+      const baseMsg = `${data.total} trends · ${Math.round(data.duration_ms / 1000)}s`;
+      if (partialFails.length > 0) {
+        toast.warning(`${baseMsg} (${partialFails.join(", ")} falharam)`, { id: toastId, duration: 6000 });
+      } else {
+        toast.success(baseMsg, { id: toastId, duration: 4000 });
+      }
       router.refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
+      toast.error(e instanceof Error ? e.message.slice(0, 300) : "Erro", { id: toastId, duration: 8000 });
     } finally {
       setRunning(false);
     }

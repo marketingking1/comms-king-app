@@ -25,58 +25,58 @@ type ProviderRoute = {
   maxTokens: number;
 };
 
-// Stack OpenAI top-tier (maio 2026).
-// gpt-5.5: estratégico/criativo — flagship Abr/26, melhor pra prompts grandes
-// gpt-5.4-mini: utilitários — bem mais inteligente que gpt-4o-mini, custo OK
+// Stack OpenAI ESTÁVEL (gpt-5.x exige tier 5+ — caia em silêncio quando não liberado).
+// gpt-4o: estratégico/criativo (universal, alta qualidade)
+// gpt-4o-mini: utilitários (rápido + barato)
 const ROUTING: Record<AgentName, ProviderRoute> = {
   'comms-head': {
     provider: 'openai',
-    model: 'gpt-5.5',
+    model: 'gpt-4o',
     maxTokens: 8000,
   },
   'comms-million-strategist': {
     provider: 'openai',
-    model: 'gpt-5.5',
+    model: 'gpt-4o',
     maxTokens: 8000,
   },
   'comms-storyteller-viral': {
     provider: 'openai',
-    model: 'gpt-5.5',
+    model: 'gpt-4o',
     maxTokens: 8000,
   },
   'comms-scriptwriter': {
     provider: 'openai',
-    model: 'gpt-5.5',
+    model: 'gpt-4o',
     maxTokens: 6000,
   },
   'comms-zeitgeist-hunter': {
     provider: 'openai',
-    model: 'gpt-5.4-mini',
+    model: 'gpt-4o-mini',
     maxTokens: 4000,
   },
   'comms-community-manager': {
     provider: 'openai',
-    model: 'gpt-5.4-mini',
+    model: 'gpt-4o-mini',
     maxTokens: 4000,
   },
   'comms-analyst-io': {
     provider: 'openai',
-    model: 'gpt-5.4-mini',
+    model: 'gpt-4o-mini',
     maxTokens: 5000,
   },
   'comms-funnel-curator': {
     provider: 'openai',
-    model: 'gpt-5.4-mini',
+    model: 'gpt-4o-mini',
     maxTokens: 2000,
   },
   'comms-edit-director': {
     provider: 'openai',
-    model: 'gpt-5.4-mini',
+    model: 'gpt-4o-mini',
     maxTokens: 3000,
   },
   'comms-editorial-producer': {
     provider: 'openai',
-    model: 'gpt-5.4-mini',
+    model: 'gpt-4o-mini',
     maxTokens: 2500,
   },
 };

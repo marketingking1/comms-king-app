@@ -37,24 +37,39 @@ export async function POST(request: NextRequest) {
   const startedAt = Date.now();
   const summary: Record<string, { count: number; error?: string }> = {};
 
-  const fetchTasks: Array<Promise<RawTrend[]>> = [];
-  if (sources.includes("google_trends")) fetchTasks.push(getGoogleTrendsDaily());
-  if (sources.includes("news")) fetchTasks.push(getNewsTrending());
-  if (sources.includes("twitter")) fetchTasks.push(getTwitterTrending());
-  if (sources.includes("tiktok")) fetchTasks.push(getTikTokTrending());
-  if (sources.includes("reddit")) fetchTasks.push(getRedditTrending());
+  type Task = { name: string; promise: Promise<RawTrend[]> };
+  const fetchTasks: Task[] = [];
+  if (sources.includes("google_trends")) fetchTasks.push({ name: "google_trends", promise: getGoogleTrendsDaily() });
+  if (sources.includes("news")) fetchTasks.push({ name: "news", promise: getNewsTrending() });
+  if (sources.includes("twitter")) fetchTasks.push({ name: "twitter", promise: getTwitterTrending() });
+  if (sources.includes("tiktok")) fetchTasks.push({ name: "tiktok", promise: getTikTokTrending() });
+  if (sources.includes("reddit")) fetchTasks.push({ name: "reddit", promise: getRedditTrending() });
 
-  const results = await Promise.allSettled(fetchTasks);
+  const results = await Promise.allSettled(fetchTasks.map((t) => t.promise));
 
   const allTrends: RawTrend[] = [];
-  for (const r of results) {
-    if (r.status === "fulfilled") allTrends.push(...r.value);
-    else console.error("[trends/refresh] source failed:", r.reason);
-  }
+  results.forEach((r, idx) => {
+    const name = fetchTasks[idx].name;
+    if (r.status === "fulfilled") {
+      allTrends.push(...r.value);
+      summary[name] = { count: r.value.length };
+    } else {
+      const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+      console.error(`[trends/refresh] ${name} failed:`, msg);
+      summary[name] = { count: 0, error: msg.slice(0, 200) };
+    }
+  });
 
-  for (const t of allTrends) {
-    if (!summary[t.source]) summary[t.source] = { count: 0 };
-    summary[t.source].count++;
+  // Se TUDO falhou, retorna erro claro pro cliente
+  if (allTrends.length === 0) {
+    return Response.json(
+      {
+        error: "all sources failed",
+        summary,
+        hint: "Apify pode estar com quota esgotada ou actors lentos. Veja summary por fonte.",
+      },
+      { status: 502 },
+    );
   }
 
   // Classificar relevância via Sonnet em batches de 20 — array global alinhado por posição
