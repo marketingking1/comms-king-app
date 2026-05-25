@@ -50,8 +50,8 @@ export default function LoginPage() {
         <div className="absolute -bottom-32 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/30 blur-3xl" />
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="relative h-12 w-12">
-            <Image src="/brand/lion-light.png" alt="King" fill sizes="48px" className="object-contain" priority />
+          <div className="relative h-12 w-12 drop-shadow-[0_0_24px_rgba(229,57,53,0.35)]">
+            <Image src="/brand/lion-red.png" alt="King" fill sizes="48px" className="object-contain" priority />
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.25em] text-sidebar-foreground/60">King of Languages</p>
