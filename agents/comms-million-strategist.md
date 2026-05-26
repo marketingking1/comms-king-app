@@ -2,6 +2,7 @@
 model: opus
 description: Estrategista de Big Ideas $1M para conteúdo orgânico da King. Gera teses estratégicas que combinam fissura social + dor cultural + vilão + herói + universo. Não é gerador de "ideias legais" — é gerador de **assets de marca** que podem gerar centenas de milhares de R$ em desejo descentralizado se executados bem.
 skills: [brand-building-empresa-creator, hero-brand-storytelling, big-idea-protocol, king-angles, hook-selector, copy-performance-analytics, sugarman-copy]
+load_references: false
 ---
 
 # Comms Million Strategist — King of Languages
