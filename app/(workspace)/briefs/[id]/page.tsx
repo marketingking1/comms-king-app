@@ -4,9 +4,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { GenerateBigIdeasButton } from "./generate-button";
+import { GenerateDownstreamButton } from "./generate-button";
 import { MarkdownProse } from "@/components/markdown-prose";
-import { ChevronLeft, FileText, Lightbulb, Sparkles } from "lucide-react";
+import { ChevronLeft, FileText, Lightbulb, Sparkles, Zap, Layers, Film, Image as ImageIcon } from "lucide-react";
+import {
+  BRIEFING_TYPE_LABELS,
+  isBriefingType,
+  type BriefingType,
+} from "@/lib/briefs/routing";
 
 export default async function BriefDetailPage({
   params,
@@ -24,11 +29,19 @@ export default async function BriefDetailPage({
 
   if (!brief) notFound();
 
+  const briefingType: BriefingType = isBriefingType(brief.briefing_type)
+    ? brief.briefing_type
+    : "mensal";
+
   const { data: ideas } = await supabase
     .from("big_ideas")
     .select("id, title, status, created_at")
     .eq("brief_id", id)
     .order("created_at", { ascending: false });
+
+  const showBigIdeas = briefingType === "mensal";
+  const HeaderIcon = headerIconFor(briefingType);
+  const headerTitle = brief.month ?? BRIEFING_TYPE_LABELS[briefingType];
 
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
@@ -44,18 +57,21 @@ export default async function BriefDetailPage({
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-xl bg-brand-blue/10 flex items-center justify-center">
-              <FileText className="h-6 w-6 text-brand-blue" />
+              <HeaderIcon className="h-6 w-6 text-brand-blue" />
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-muted-foreground">
-                Brief estratégico
+                Brief · {BRIEFING_TYPE_LABELS[briefingType]}
               </p>
               <h1 className="font-display text-3xl lg:text-4xl font-semibold tracking-tight">
-                {brief.month}
+                {headerTitle}
               </h1>
             </div>
           </div>
-          <StatusBadge status={brief.status} />
+          <div className="flex items-center gap-2">
+            <TypeBadge type={briefingType} />
+            <StatusBadge status={brief.status} />
+          </div>
         </div>
       </div>
 
@@ -64,8 +80,15 @@ export default async function BriefDetailPage({
         <CardHeader className="border-b flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-brand-coral" />
-            Documento do brief
+            {showBigIdeas ? "Documento do brief" : "Mini-brief"}
           </CardTitle>
+          {!showBigIdeas && (
+            <GenerateDownstreamButton
+              briefId={brief.id}
+              briefMarkdown={brief.raw_markdown || ""}
+              briefingType={briefingType}
+            />
+          )}
         </CardHeader>
         <CardContent className="p-6 lg:p-8">
           {brief.raw_markdown ? (
@@ -76,52 +99,91 @@ export default async function BriefDetailPage({
         </CardContent>
       </Card>
 
-      {/* Big Ideas */}
-      <Card className="overflow-hidden">
-        <CardHeader className="border-b">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-brand-coral" />
-              <CardTitle className="text-base">Big Ideas desse brief</CardTitle>
-            </div>
-            <GenerateBigIdeasButton briefId={brief.id} briefMarkdown={brief.raw_markdown || ""} />
-          </div>
-        </CardHeader>
-        <CardContent className="p-5">
-          {!ideas?.length ? (
-            <div className="text-center py-12 space-y-3">
-              <div className="h-12 w-12 rounded-2xl bg-brand-coral/10 mx-auto flex items-center justify-center">
-                <Lightbulb className="h-5 w-5 text-brand-coral" />
+      {/* Big Ideas — apenas para tipo mensal */}
+      {showBigIdeas && (
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="h-4 w-4 text-brand-coral" />
+                <CardTitle className="text-base">Big Ideas desse brief</CardTitle>
               </div>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Nenhuma Big Idea ainda. Clique em <strong className="text-foreground">Gerar Big Ideas</strong> pra rodar o <code className="bg-muted px-1.5 py-0.5 rounded text-xs">comms-million-strategist</code>.
-              </p>
+              <GenerateDownstreamButton
+                briefId={brief.id}
+                briefMarkdown={brief.raw_markdown || ""}
+                briefingType={briefingType}
+              />
             </div>
-          ) : (
-            <div className="space-y-2">
-              {ideas.map((i) => (
-                <Link
-                  key={i.id}
-                  href={`/ideas/${i.id}`}
-                  className={buttonVariants({
-                    variant: "ghost",
-                    className: "w-full justify-between !h-auto !p-4 hover:bg-accent/40 cursor-pointer",
-                  })}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-9 w-9 rounded-lg bg-brand-coral/12 flex items-center justify-center flex-shrink-0">
-                      <Lightbulb className="h-4 w-4 text-brand-coral" />
+          </CardHeader>
+          <CardContent className="p-5">
+            {!ideas?.length ? (
+              <div className="text-center py-12 space-y-3">
+                <div className="h-12 w-12 rounded-2xl bg-brand-coral/10 mx-auto flex items-center justify-center">
+                  <Lightbulb className="h-5 w-5 text-brand-coral" />
+                </div>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                  Nenhuma Big Idea ainda. Clique em <strong className="text-foreground">Gerar 3 Big Ideas</strong> pra rodar o <code className="bg-muted px-1.5 py-0.5 rounded text-xs">comms-million-strategist</code>.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {ideas.map((i) => (
+                  <Link
+                    key={i.id}
+                    href={`/ideas/${i.id}`}
+                    className={buttonVariants({
+                      variant: "ghost",
+                      className: "w-full justify-between !h-auto !p-4 hover:bg-accent/40 cursor-pointer",
+                    })}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-lg bg-brand-coral/12 flex items-center justify-center flex-shrink-0">
+                        <Lightbulb className="h-4 w-4 text-brand-coral" />
+                      </div>
+                      <p className="font-medium truncate">{i.title}</p>
                     </div>
-                    <p className="font-medium truncate">{i.title}</p>
-                  </div>
-                  <StatusBadge status={i.status} />
-                </Link>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    <StatusBadge status={i.status} />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
+  );
+}
+
+function headerIconFor(type: BriefingType) {
+  switch (type) {
+    case "mensal":
+      return FileText;
+    case "isolado":
+      return ImageIcon;
+    case "carrossel":
+      return Layers;
+    case "post":
+      return Film;
+    case "trend":
+      return Zap;
+  }
+}
+
+function TypeBadge({ type }: { type: BriefingType }) {
+  const map: Record<BriefingType, string> = {
+    mensal: "bg-brand-blue/12 text-brand-blue border-brand-blue/30",
+    isolado: "bg-muted text-muted-foreground border-border",
+    carrossel: "bg-purple-500/12 text-purple-700 dark:text-purple-300 border-purple-500/30",
+    post: "bg-pink-500/12 text-pink-700 dark:text-pink-300 border-pink-500/30",
+    trend: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
+  };
+  return (
+    <Badge
+      variant="outline"
+      className={`text-[10px] font-medium ${map[type]}`}
+    >
+      {BRIEFING_TYPE_LABELS[type]}
+    </Badge>
   );
 }
 

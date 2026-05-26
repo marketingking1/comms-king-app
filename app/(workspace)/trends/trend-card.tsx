@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Sparkles, Loader2, Star } from "lucide-react";
+import { ExternalLink, Sparkles, Loader2, Star, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 type Trend = {
@@ -120,16 +120,27 @@ export function TrendCard({ trend }: { trend: Trend }) {
             </a>
           )}
           {trend.king_relevance !== "low" && trend.king_angle && trend.king_angle !== "sem ângulo" && (
-            <Button
-              size="xs"
-              variant="outline"
-              className="ml-auto"
-              onClick={promote}
-              disabled={promoting}
-            >
-              {promoting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              Caçar pauta
-            </Button>
+            <div className="ml-auto flex items-center gap-1.5">
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => router.push(`/briefs/new?fromTrend=${trend.id}`)}
+                title="Cria um brief tipo Trend (fast-track) já com king_angle pré-preenchido"
+              >
+                <FileText className="h-3 w-3" />
+                Brief
+              </Button>
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={promote}
+                disabled={promoting}
+                title="Cria pauta zeitgeist (modo profundo)"
+              >
+                {promoting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                Pauta
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>
