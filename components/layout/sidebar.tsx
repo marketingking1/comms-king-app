@@ -17,6 +17,7 @@ import {
   BarChart3,
   LineChart,
   Flame,
+  Zap,
   DollarSign,
   Settings,
   LogOut,
@@ -45,6 +46,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/ideas", label: "Big Ideas", icon: Lightbulb },
       { href: "/zeitgeist", label: "Zeitgeist", icon: Sparkles },
       { href: "/trends", label: "Trends do dia", icon: Flame },
+      { href: "/viral", label: "Virais do dia", icon: Zap },
     ],
   },
   {
