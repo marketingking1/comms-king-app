@@ -34,18 +34,47 @@ export type ViralVideoRow = {
   metadata: Record<string, unknown>;
 };
 
-// Hashtags virais gerais BR — escolha pra pegar mainstream sem nichar
+// Hashtags virais gerais BR — PT-BR explicitas (sem #viral/#fyp/#trending genéricas
+// que dominam India/global). Combinadas com filtro de idioma na caption.
 export const HASHTAGS_VIRAL_BR = [
-  "viral",
-  "viralreels",
-  "trending",
-  "humor",
-  "comedia",
-  "fyp",
+  "humorbrasil",
+  "humorbr",
+  "humordobrasil",
+  "comediabrasileira",
+  "memesbrasil",
+  "viralbrasil",
+  "engracado",
+  "tiktokbrasil",
 ];
 
 const WINDOW_HOURS = 48;
 const KING_OWN_USERNAME = "kingoflanguagesoficial"; // auto-skip pra não comentar no próprio perfil
+
+// Heurística leve pra confirmar que a caption é PT-BR (defesa em profundidade —
+// mesmo buscando hashtag PT, vem ruído de criadores estrangeiros que usam tag BR
+// como spam de discovery).
+const PT_ACCENT_RE = /[áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇñÑ]/;
+const PT_STOPWORDS = [
+  " que ", " não ", " nao ", " uma ", " com ", " para ", " você ", " voce ",
+  " seu ", " sua ", " meu ", " minha ", " quem ", " mais ", " muito ", " tudo ",
+  " tem ", " ter ", " esta ", " está ", " esse ", " essa ", " isso ", " aqui ",
+  " pra ", " pro ", " hoje ", " quando ", " porque ", " agora ", " também ",
+  " tambem ", " gente ", " kkk", " rsrs", " hahaha", " mano ", " cara ",
+];
+
+function isPortugueseCaption(caption: string | null | undefined): boolean {
+  if (!caption) return false; // sem caption não dá pra confirmar — descarta por padrão
+  const lower = ` ${caption.toLowerCase()} `;
+  if (PT_ACCENT_RE.test(caption)) return true;
+  let hits = 0;
+  for (const sw of PT_STOPWORDS) {
+    if (lower.includes(sw)) {
+      hits++;
+      if (hits >= 2) return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Pega virais do Instagram nas hashtags definidas, normaliza, dedup, filtra janela e perfil próprio.
@@ -86,6 +115,9 @@ export async function getInstagramViralsBR(opts?: {
     // Filtra janela 48h
     const postedAt = p.timestamp ? new Date(p.timestamp).getTime() : null;
     if (postedAt && postedAt < sinceMs) continue;
+
+    // Filtra idioma — só PT-BR
+    if (!isPortugueseCaption(p.caption)) continue;
 
     const mediaType = p.type === "Video" ? "video"
       : p.type === "Sidecar" ? "carousel"
