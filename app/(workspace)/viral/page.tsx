@@ -7,6 +7,9 @@ import { ViralVideoCard, type ViralVideo } from "./video-card";
 
 export const dynamic = "force-dynamic";
 
+// Threshold de qualidade — só mostra reels com volume real de engajamento.
+const MIN_COMMENTS = 500;
+
 export default async function ViralPage() {
   const supabase = await createSupabaseServerClient();
 
@@ -17,6 +20,7 @@ export default async function ViralPage() {
     .from("viral_videos")
     .select("*")
     .gte("fetched_at", since)
+    .gte("comments_count", MIN_COMMENTS)
     .order("views_count", { ascending: false, nullsFirst: false })
     .limit(200);
 
@@ -32,7 +36,7 @@ export default async function ViralPage() {
       <PageHeader
         eyebrow="Engajamento orgânico"
         title="Virais do dia"
-        description="Reels virais do Instagram pra comentar e gerar visitas no perfil · refresh manual ou diário"
+        description={`Reels virais do Instagram pra comentar e gerar visitas no perfil · só ${MIN_COMMENTS}+ comentários · janela 48h`}
         actions={<ViralToolbar lastFetched={lastFetched} />}
       />
 
